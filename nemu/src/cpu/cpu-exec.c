@@ -17,30 +17,63 @@
 #include <cpu/decode.h>
 #include <cpu/difftest.h>
 #include <locale.h>
+#include "../monitor/sdb/sdb.h"
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
  * This is useful when you use the `si' command.
  * You can modify this value as you want.
  */
-#define MAX_INST_TO_PRINT 10
+#define MAX_INST_TO_PRINT 200
+#define IRING_LEN 16
 
 CPU_state cpu = {};
 uint64_t g_nr_guest_inst = 0;
 static uint64_t g_timer = 0; // unit: us
 static bool g_print_step = false;
 
+#ifdef CONFIG_ITRACE_COND
+static char iringbuf[IRING_LEN][64];
+static int iring_point = 0;
+
+static void iring_step(){
+  iring_point = (iring_point + 1) % IRING_LEN;
+}
+
+static void iring_display(){
+  for (int i = 0; i < IRING_LEN; i++) {
+    IFDEF(CONFIG_ITRACE, puts(iringbuf[iring_point]));
+    iring_step();
+  }
+}
+#endif
+
 void device_update();
 
 static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
 #ifdef CONFIG_ITRACE_COND
   if (ITRACE_COND) { log_write("%s\n", _this->logbuf); }
+  strcpy(iringbuf[iring_point], _this->logbuf);
+  iring_step();
 #endif
   if (g_print_step) { IFDEF(CONFIG_ITRACE, puts(_this->logbuf)); }
   IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, dnpc));
+#ifdef CONFIG_WATCHPOINT
+  bool* success = NULL;
+  WP* cur = get_head()->next;
+  while (cur) {
+    word_t res = expr(cur->expr_str, success);
+    if (res != cur->val) {
+      cur->val = res;
+      nemu_state.state = NEMU_STOP;
+      printf("trigger watch point.\n");
+    }
+    cur = cur->next;
+  }
+#endif
 }
-
-static void exec_once(Decode *s, vaddr_t pc) {
+ 
+void exec_once(Decode *s, vaddr_t pc) {
   s->pc = pc;
   s->snpc = pc;
   isa_exec_once(s);
@@ -71,7 +104,7 @@ static void exec_once(Decode *s, vaddr_t pc) {
 #endif
 }
 
-static void execute(uint64_t n) {
+void execute(uint64_t n) {
   Decode s;
   for (;n > 0; n --) {
     exec_once(&s, cpu.pc);
@@ -82,7 +115,7 @@ static void execute(uint64_t n) {
   }
 }
 
-static void statistic() {
+void statistic() {
   IFNDEF(CONFIG_TARGET_AM, setlocale(LC_NUMERIC, ""));
 #define NUMBERIC_FMT MUXDEF(CONFIG_TARGET_AM, "%", "%'") PRIu64
   Log("host time spent = " NUMBERIC_FMT " us", g_timer);
@@ -116,7 +149,8 @@ void cpu_exec(uint64_t n) {
   switch (nemu_state.state) {
     case NEMU_RUNNING: nemu_state.state = NEMU_STOP; break;
 
-    case NEMU_END: case NEMU_ABORT:
+    case NEMU_ABORT: IFDEF(CONFIG_ITRACE, iring_display());
+    case NEMU_END: 
       Log("nemu: %s at pc = " FMT_WORD,
           (nemu_state.state == NEMU_ABORT ? ANSI_FMT("ABORT", ANSI_FG_RED) :
            (nemu_state.halt_ret == 0 ? ANSI_FMT("HIT GOOD TRAP", ANSI_FG_GREEN) :

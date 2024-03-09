@@ -17,12 +17,14 @@
 #include <cpu/cpu.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <stdlib.h>
 #include "sdb.h"
 
 static int is_batch_mode = false;
 
 void init_regex();
 void init_wp_pool();
+word_t paddr_read(paddr_t addr, int len);
 
 /* We use the `readline' library to provide more flexibility to read from stdin. */
 static char* rl_gets() {
@@ -47,9 +49,68 @@ static int cmd_c(char *args) {
   return 0;
 }
 
-
 static int cmd_q(char *args) {
   return -1;
+}
+
+static int cmd_p(char *args) {
+  bool* success = NULL;
+  printf("%x\n", expr(args, success));
+  return 0;
+}
+
+static int cmd_si(char *args) {
+  if (args != NULL) {
+    cpu_exec(atoi(args));
+  } else {
+    cpu_exec(1);
+  }
+  return 0;
+}
+
+static int cmd_info(char *args) {
+  if (*args=='r') {
+    isa_reg_display();
+  } else if (*args=='w'){
+    WP* cur = get_head()->next;
+    while (cur) {
+      printf("NO: %d\nval:%u\nexpr: %s\n\n", cur->NO, cur->val, cur->expr_str);
+      cur = cur->next;
+    }
+  }
+  return 0;
+}
+
+static int cmd_x(char *args) {
+  int n = atoi(strtok(args, " "));
+  bool* success = NULL;
+  uint32_t start = expr(strtok(NULL, " "), success);
+  printf("start: %u\n", start);
+  for (int i = 0; i < n; i++)
+    printf("0x%08x\n", paddr_read(start, 4));
+
+  return 0;
+}
+
+static int cmd_w(char* args) {
+  WP* p = new_wp();
+  bool* success = NULL;
+  p->val = expr(args, success);
+  strcpy(p->expr_str, args);
+  return 0;
+}
+
+static int cmd_d(char* args) {
+  WP *p = get_head()->next;
+  int no = atoi(args);
+  while (p) {
+    if (p->NO == no) {
+      free_wp(p);
+    }
+    p = p->next;
+  }
+  p = p->next;
+  return 0;
 }
 
 static int cmd_help(char *args);
@@ -62,8 +123,12 @@ static struct {
   { "help", "Display information about all supported commands", cmd_help },
   { "c", "Continue the execution of the program", cmd_c },
   { "q", "Exit NEMU", cmd_q },
-
-  /* TODO: Add more commands */
+  { "si", "run single command", cmd_si },
+  { "info", "print statement", cmd_info },
+  { "x", "scan memory", cmd_x},
+  { "p", "compute expr", cmd_p},
+  { "w", "watch point", cmd_w},
+  { "d", "delete watch point", cmd_d}
 
 };
 
@@ -125,7 +190,7 @@ void sdb_mainloop() {
     int i;
     for (i = 0; i < NR_CMD; i ++) {
       if (strcmp(cmd, cmd_table[i].name) == 0) {
-        if (cmd_table[i].handler(args) < 0) { return; }
+        if (cmd_table[i].handler(args) < 0) {nemu_state.state = NEMU_QUIT; return; }
         break;
       }
     }
