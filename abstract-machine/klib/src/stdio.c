@@ -6,7 +6,17 @@
 #if !defined(__ISA_NATIVE__) || defined(__NATIVE_USE_KLIB__)
 
 int printf(const char *fmt, ...) {
-  panic("Not implemented");
+  char buf[1024] = {0};
+  char *p = buf;
+  va_list ap;
+  va_start(ap, fmt);
+  int ret = vsprintf(buf, fmt, ap);
+  va_end(ap);
+  while (*p) {
+    putch(*p);
+    p++;
+  }
+  return ret;
 }
 
 void itoa (char* str, uint32_t num){
@@ -30,7 +40,7 @@ void itoa (char* str, uint32_t num){
 
 int vsprintf(char *out, const char *fmt, va_list ap) {
   char* pre = out;
-  char buf[256];
+  char buf[1024];
   while (*fmt) {
     if (*fmt == '%') {
       fmt++;

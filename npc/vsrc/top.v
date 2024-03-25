@@ -36,13 +36,11 @@ module top(
   .ALUAsrc(aluasrc), 
   .ALUBsrc(alubsrc), 
   .Regw(wen),
-  .sign(sign),
   .branch(branch),
   .MemOp(memop),
   .MemtoReg(memtoreg),
   .MemWr(memwr));
 
-  wire sign;
   RegisterFile rf (
   .Ra(inst[19:15]),
   .Rb(inst[24:20]),
@@ -50,7 +48,6 @@ module top(
   .wdata(wd), 
   .waddr(inst[11:7]),
   .wen(wen),
-  .sign(sign),
   .busA(src1), 
   .busB(src2));
   ImmGen ig (inst, extop, imm);
@@ -65,7 +62,7 @@ module top(
     2'b10, 32'd4
   });
   wire less, zero;
-  Alu a0 (.a (a), .b(b), .ctr(aluctr), .res(res), .less(less), .zero(zero));
+  Alu a0 (.a (a), .b(b), .ctr(aluctr), .ans(res), .less(less), .zero(zero));
   BranchCond bc(
   .branch(branch),
   .zero(zero),
