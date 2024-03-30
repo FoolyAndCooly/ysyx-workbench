@@ -22,6 +22,22 @@
 #define Mr vaddr_read
 #define Mw vaddr_write
 
+#define CSR(i) *csr(i)
+
+word_t* csr(int i) {
+  switch (i) {
+    case 0x300: 
+      return &cpu.csr.mstatus;
+    case 0x305:
+      return &cpu.csr.mtvec;
+    case 0x341:
+      return &cpu.csr.mepc;
+    case 0x342:
+      return &cpu.csr.mcause;
+  }
+  return NULL;
+}
+
 enum {
   TYPE_I, TYPE_U, TYPE_S,
   TYPE_N, TYPE_J, TYPE_R, TYPE_B
@@ -108,6 +124,10 @@ static int decode_exec(Decode *s) {
 
   INSTPAT("??????? ????? ????? 000 ????? 01000 11", sb     , S, Mw(src1 + imm, 1, src2));
   INSTPAT("0000000 00001 00000 000 00000 11100 11", ebreak , N, NEMUTRAP(s->pc, R(10))); // R(10) is $a0
+  INSTPAT("0000000 00000 00000 000 00000 11100 11", ecall  , N, s->dnpc = isa_raise_intr(0xb, s->pc));
+  INSTPAT("??????? ????? ????? 010 ????? 11100 11", csrrs  , I, R(rd) = CSR(imm); CSR(imm) = CSR(imm) | src1);
+  INSTPAT("??????? ????? ????? 001 ????? 11100 11", csrrw  , I, R(rd) = CSR(imm); CSR(imm) = src1);
+  INSTPAT("0011000 00010 00000 000 00000 11100 11", mret   , N, s->dnpc = cpu.csr.mepc);
   INSTPAT("??????? ????? ????? ??? ????? ????? ??", inv    , N, INV(s->pc));
   INSTPAT_END();
 

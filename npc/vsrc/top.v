@@ -13,6 +13,7 @@ module top(
   wire [1:0] alubsrc;
   wire wen;
   wire [31:0] imm;
+  wire CSRctr;
   wire PCAsrc, PCBsrc;
   PC_Gen pg(
   .pc_in(pc),
@@ -31,11 +32,13 @@ module top(
   .op_6_2 (inst[6:2]), 
   .func3 (inst[14:12]),
   .func7_5 (inst[30]),
+  .inst20(inst[20]),
   .ExtOp(extop), 
   .ALUctr(aluctr), 
   .ALUAsrc(aluasrc), 
   .ALUBsrc(alubsrc), 
   .Regw(wen),
+  .CSRctr(CSRctr),
   .branch(branch),
   .MemOp(memop),
   .MemtoReg(memtoreg),
@@ -48,6 +51,7 @@ module top(
   .wdata(wd), 
   .waddr(inst[11:7]),
   .wen(wen),
+  .CSRctr(CSRctr),
   .busA(src1), 
   .busB(src2));
   ImmGen ig (inst, extop, imm);

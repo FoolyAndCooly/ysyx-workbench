@@ -19,7 +19,7 @@ int printf(const char *fmt, ...) {
   return ret;
 }
 
-void itoa (char* str, uint32_t num){
+static void itoa (char* str, uint64_t num){
   char* pre = str;
   char t;
   while (num) {
@@ -51,6 +51,13 @@ int vsprintf(char *out, const char *fmt, va_list ap) {
 	case 's':
 	  strcpy(buf, va_arg(ap, char*));
 	  break;
+	case 'l': // %ld
+	  fmt++;
+	  if (*fmt == 'd') {
+	    itoa(buf, va_arg(ap, uint32_t));
+	    break;
+	  }
+	default: assert(0);
       }
       strcpy(out, buf);
       out += strlen(buf);
