@@ -38,6 +38,7 @@ void exec_once(){
   top->clk = 0;
   top->inst = pmem_read(top->pc,4);
   // printf("inst: %08x\n", top->inst);
+  // printf("pc : %08x\n", top->pc);
   top->eval();
   top->clk = 1;
   top->eval();
