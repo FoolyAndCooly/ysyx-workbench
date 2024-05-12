@@ -16,7 +16,6 @@ void reg_display();
 
 void init_difftest(char *ref_so_file, long img_size, int port) {
   assert(ref_so_file != NULL);
-
   void *handle;
   handle = dlopen(ref_so_file, RTLD_LAZY);
   assert(handle);
@@ -40,9 +39,9 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
   ref_difftest_memcpy(CONFIG_MBASE, guest_to_host(CONFIG_MBASE), img_size, DIFFTEST_TO_REF);
   CPU_state cpu;
   for (int i = 0; i < 32; i++) {
-    cpu.gpr[i] = top->rootp->top__DOT__rf__DOT__rf[i];
+    cpu.gpr[i] = top->rootp->top__DOT__rf[i];
   }
-  cpu.pc = top->pc;
+  cpu.pc = top->rootp->top__DOT__pc;
   ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
 }
 
@@ -56,7 +55,6 @@ static void checkregs(CPU_state *ref, uint32_t pc) {
 
 void difftest_step(uint32_t pc) {
   CPU_state ref_r;
-
   ref_difftest_exec(1);
   ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
 

@@ -25,20 +25,27 @@ static void iring_display(){
 
 extern "C" void set_npc_state(int state){
   npc_state.state = state;
-  npc_state.halt_pc = top->pc;
-  npc_state.halt_ret = top->rootp->top__DOT__rf__DOT__rf[10];
+  npc_state.halt_pc = top->rootp->top__DOT__pc;
+  npc_state.halt_ret = top->rootp->top__DOT__rf[10];
 }
 
 void init_top() {
-  top->pc = CONFIG_MBASE;
   top->clk = 0;
+  top->rootp->top__DOT__IFU_valid = 0;
+  top->rootp->top__DOT__IDU_valid = 0;
+  top->rootp->top__DOT__EXU_valid = 0;
+  top->rootp->top__DOT__WBU_finish = 1;
+  top->rootp->top__DOT__IDU_ready = 1;
+  top->rootp->top__DOT__EXU_ready = 1;
+  top->rootp->top__DOT__WBU_ready = 1;
+  top->rootp->top__DOT__pc = 0x80000000;
+  top->rootp->top__DOT__csr[1] = 0x1800;
 }
 
 void exec_once(){
   top->clk = 0;
-  top->inst = pmem_read(top->pc,4);
-  // printf("inst: %08x\n", top->inst);
-  // printf("pc : %08x\n", top->pc);
+  // top->inst = pmem_read(top->pc,4);
+  // printf("pc : %08x\n", top->rootp->top__DOT__pc);
   top->eval();
   top->clk = 1;
   top->eval();
@@ -47,7 +54,7 @@ void exec_once(){
 
 static void trace_and_difftest(uint32_t pre_pc) {
   //IFDEF(CONFIG_DIFFTEST, difftest_step());
-  iringbuf[iring_point] = top->inst;
+  iringbuf[iring_point] = top->rootp->top__DOT__inst;
   iring_step();
   difftest_step(pre_pc);
 }
@@ -56,7 +63,7 @@ static void trace_and_difftest(uint32_t pre_pc) {
 void execute(uint64_t n) {
   uint32_t pre_pc;
   for (;n > 0; n --) {
-    pre_pc = top->pc;
+    pre_pc = top->rootp->top__DOT__pc;
     exec_once();
     // trace_and_difftest(pre_pc);
     if (npc_state.state != NPC_RUNNING) break;
@@ -78,7 +85,6 @@ void cpu_exec(uint64_t n) {
 
   switch (npc_state.state) {
     case NPC_RUNNING: npc_state.state = NPC_STOP; break;
-
     case NPC_ABORT: iring_display();
     case NPC_END: 
       Log("npc: %s at pc = " FMT_WORD,

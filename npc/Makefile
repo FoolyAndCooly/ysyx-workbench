@@ -37,7 +37,7 @@ $(BIN): $(VSRCS) $(CSRCS)
 all: default
 
 run: $(BIN)
-	@$^ -b $(IMG)
+	@$^ $(IMG)
 	$(call git_commit, "sim RTL")
 
 clean:
