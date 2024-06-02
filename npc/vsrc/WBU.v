@@ -2,9 +2,33 @@
 `define MSTATUS 2'b01
 `define MCAUSE 2'b10
 `define MTVEC 2'b11
+
+module PC_Gen(
+  input reg [31:0] pc_in,
+  input [31:0] rs1,
+  input clk,
+  input [31:0] imm,
+  input PCAsrc, PCBsrc,
+  input syn,
+  output reg [31:0] pc_out
+);
+  wire [31:0] tmp1, tmp2;
+  MuxKey #(2, 1, 32) p1 (tmp1, PCAsrc, {1'b0, 32'b100, 1'b1, imm});
+  MuxKey #(2, 1, 32) p2 (tmp2, PCBsrc, {1'b0, pc_in,   1'b1, rs1});
+  always @(posedge clk) begin
+    if (syn) begin 
+      pc_out <= tmp1 + tmp2;
+    end
+  end
+endmodule
+
 module Wbu (
   input [31:0] wdata,
   input [4:0] waddr,
+  input [31:0] rs1,
+  input [31:0] imm,
+  output reg [31:0] pc,
+  input PCAsrc, PCBsrc,
   input clk,
   input wen,
   input [4:0] Ra,
@@ -13,13 +37,33 @@ module Wbu (
   input reg [31:0] csr_in[3:0],
   output reg [31:0] csr_out[3:0],
   input reg EXU_valid,
+  input reg IFU_ready,
   input [2:0] CSRctr,
   output reg WBU_ready,
-  output reg WBU_finish
+  output reg WBU_valid
 );
-  wire syn_EXU_WBU;
+  wire syn_EXU_WBU, syn_WBU_IFU;
   assign syn_EXU_WBU = EXU_valid & WBU_ready;
+  assign syn_WBU_IFU = WBU_valid & IFU_ready;
   
+  always @(posedge clk) begin
+    if (syn_EXU_WBU) WBU_ready <= 0;
+    if (syn_WBU_IFU) begin 
+      WBU_valid <= 0;
+      WBU_ready <= 1;
+    end
+  end
+
+  PC_Gen pg(
+  .pc_in(pc),
+  .rs1(rs1),
+  .clk(clk),
+  .imm(imm),
+  .pc_out(pc),
+  .PCAsrc(PCAsrc),
+  .PCBsrc(PCBsrc),
+  .syn(syn_EXU_WBU));
+
   wire [1:0] csr_num;
   MuxKey #(4, 32, 2) i (csr_num, wdata, {
     32'h300, `MSTATUS,
@@ -29,32 +73,29 @@ module Wbu (
   });
   always @(posedge clk) begin
     if (syn_EXU_WBU) begin
-      WBU_ready = 0;
-      WBU_finish = 0;
       if (wen && (waddr != 0)) begin
-        rf_out[waddr] = wdata;
+        rf_out[waddr] <= wdata;
       end
       if (CSRctr != 0 && CSRctr != 3'b100) begin
         case (CSRctr)
           3'b001: begin
-            csr_out[`MCAUSE] = 11;
-            csr_out[`MEPC] = wdata;
+            csr_out[`MCAUSE] <= 11;
+            csr_out[`MEPC] <= wdata;
           end
           3'b010: begin
-              if (waddr != 0) rf_out[waddr] = csr_in[csr_num];
-              csr_out[csr_num] = rf_in[Ra];
+              if (waddr != 0) rf_out[waddr] <= csr_in[csr_num];
+              csr_out[csr_num] <= rf_in[Ra];
           end
           3'b011: begin
-              if (waddr != 0) rf_out[waddr] = csr_in[csr_num]; 
-              csr_out[csr_num] = rf_in[Ra] | csr_in[csr_num];
+              if (waddr != 0) rf_out[waddr] <= csr_in[csr_num]; 
+              csr_out[csr_num] <= rf_in[Ra] | csr_in[csr_num];
           end
           default: set_npc_state(2);
         endcase
       end
-      WBU_ready = 1;
-      WBU_finish = 1;
+      WBU_valid <= 1;
+      // $display("WBU");
     end 
-    else WBU_finish = 0;
   end
 endmodule
 

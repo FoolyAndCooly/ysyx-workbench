@@ -48,7 +48,7 @@ module ContrGen(
   input inst20,
   input inst21,
   input clk,
-  input state,
+  input syn,
   output reg IDU_valid,
   output reg [2:0] ExtOp,
   output reg [3:0] ALUctr,
@@ -65,94 +65,99 @@ reg [21:0] ctr;
 // 3:csrCtr 1:MemWr 1:MemtoReg 3: MemOp 3: branch  1: RegWr 4: ALUctr, 1: ALUAsrc, 2: ALUBsrc[1:0], ExtOp[2:0]
 // 001: ecall, 010: csrrw, 011: csrrs, 100: mret
 always @(posedge clk) begin
-  if (state) begin
+  if (syn) begin
   case (op_6_2)
     5'b00000: begin
       case (func3)
-        3'b000: ctr = 22'b0000100000010000001000; // lb
-        3'b001: ctr = 22'b0000100100010000001000; // lh
-        3'b010: ctr = 22'b0000101000010000001000; // lw
-	3'b100: ctr = 22'b0000110000010000001000; // lbu
-        3'b101: ctr = 22'b0000110100010000001000; // lhu
-	default: begin ctr = {22{1'b1}}; set_npc_state(2); end
+        3'b000: ctr <= 22'b0000100000010000001000; // lb
+        3'b001: ctr <= 22'b0000100100010000001000; // lh
+        3'b010: ctr <= 22'b0000101000010000001000; // lw
+	3'b100: ctr <= 22'b0000110000010000001000; // lbu
+        3'b101: ctr <= 22'b0000110100010000001000; // lhu
+	default: begin ctr <= {22{1'b1}}; set_npc_state(2); end
       endcase
     end
     5'b00100: begin
       case (func3)
-        3'b000: ctr = 22'b0000011100010000001000; // addi
-	3'b001: ctr = 22'b0000011100010001001000; // slli
-	3'b010: ctr = 22'b0000011100010010001000; // slti
-	3'b011: ctr = 22'b0000011100011010001000; // sltiu
-	3'b100: ctr = 22'b0000011100010100001000; // xori
-	3'b101: ctr = func7_5 ? 22'b0000011100011101001000 : 22'b0000011100010101001000; // srai
-	3'b110: ctr = 22'b0000011100010110001000; // ori
-	3'b111: ctr = 22'b0000011100010111001000; // andi
-	default: begin ctr = {22{1'b1}}; set_npc_state(2); end
+        3'b000: ctr <= 22'b0000011100010000001000; // addi
+	3'b001: ctr <= 22'b0000011100010001001000; // slli
+	3'b010: ctr <= 22'b0000011100010010001000; // slti
+	3'b011: ctr <= 22'b0000011100011010001000; // sltiu
+	3'b100: ctr <= 22'b0000011100010100001000; // xori
+	3'b101: ctr <= func7_5 ? 22'b0000011100011101001000 : 22'b0000011100010101001000; // srai
+	3'b110: ctr <= 22'b0000011100010110001000; // ori
+	3'b111: ctr <= 22'b0000011100010111001000; // andi
+	default: begin ctr <= {22{1'b1}}; set_npc_state(2); end
       endcase
     end
-    5'b00101: ctr = 22'b0000011100010000101001; // auipc
+    5'b00101: ctr <= 22'b0000011100010000101001; // auipc
     5'b01000: begin
       case (func3)
-        3'b000: ctr = 22'b0001000000000000001010; // sb
-        3'b001: ctr = 22'b0001000100000000001010; // sh
-        3'b010: ctr = 22'b0001001000000000001010; // sw
-        default: begin ctr = {22{1'b1}}; set_npc_state(2); end
+        3'b000: ctr <= 22'b0001000000000000001010; // sb
+        3'b001: ctr <= 22'b0001000100000000001010; // sh
+        3'b010: ctr <= 22'b0001001000000000001010; // sw
+        default: begin ctr <= {22{1'b1}}; set_npc_state(2); end
       endcase
     end
     5'b01100: begin
       case (func3)
-        3'b000: ctr = func7_5 ? 22'b0000011100011000000111 : 22'b0000011100010000000111; // add
-	3'b001: ctr = 22'b0000011100010001000111; // sll
-	3'b010: ctr = 22'b0000011100010010000111; // slt
-	3'b011: ctr = 22'b0000011100011010000111; // sltu
-	3'b100: ctr = 22'b0000011100010100000111; // xor
-	3'b101: ctr = func7_5 ? 22'b0000011100011101000111 : 22'b0000011100010101000111;
-	3'b110: ctr = 22'b0000011100010110000111; // or
-	3'b111: ctr = 22'b0000011100010111000111; // and
-	default: begin ctr = {22{1'b1}}; set_npc_state(2); end
+        3'b000: ctr <= func7_5 ? 22'b0000011100011000000111 : 22'b0000011100010000000111; // add
+	3'b001: ctr <= 22'b0000011100010001000111; // sll
+	3'b010: ctr <= 22'b0000011100010010000111; // slt
+	3'b011: ctr <= 22'b0000011100011010000111; // sltu
+	3'b100: ctr <= 22'b0000011100010100000111; // xor
+	3'b101: ctr <= func7_5 ? 22'b0000011100011101000111 : 22'b0000011100010101000111;
+	3'b110: ctr <= 22'b0000011100010110000111; // or
+	3'b111: ctr <= 22'b0000011100010111000111; // and
+	default: begin ctr <= {22{1'b1}}; set_npc_state(2); end
       endcase
     end
-    5'b01101: ctr = 22'b0000011100010011001001; // lui
+    5'b01101: ctr <= 22'b0000011100010011001001; // lui
     5'b11000: begin
       case (func3)
-        3'b000: ctr = 22'b0000011110000010000011; // beq
-	3'b001: ctr = 22'b0000011110100010000011; // bne
-	3'b100: ctr = 22'b0000011111000010000011; // blt
-	3'b110: ctr = 22'b0000011111001010000011; // bltu
-	3'b101: ctr = 22'b0000011111100010000011; // bge
-	3'b111: ctr = 22'b0000011111101010000011; // bgeu
-	default: begin ctr = {22{1'b1}}; set_npc_state(2); end
+        3'b000: ctr <= 22'b0000011110000010000011; // beq
+	3'b001: ctr <= 22'b0000011110100010000011; // bne
+	3'b100: ctr <= 22'b0000011111000010000011; // blt
+	3'b110: ctr <= 22'b0000011111001010000011; // bltu
+	3'b101: ctr <= 22'b0000011111100010000011; // bge
+	3'b111: ctr <= 22'b0000011111101010000011; // bgeu
+	default: begin ctr <= {22{1'b1}}; set_npc_state(2); end
       endcase
     end
-    5'b11001: ctr = 22'b0000011101010000110000; // jalr
-    5'b11011: ctr = 22'b0000011100110000110100; // jal 
+    5'b11001: ctr <= 22'b0000011101010000110000; // jalr
+    5'b11011: ctr <= 22'b0000011100110000110100; // jal 
     5'b11100: begin
       case (func3)
-        3'b001: ctr = 22'b0100011100000011001000; // csrrw
-	3'b010: ctr = 22'b0110011100000011001000; // csrrs
+        3'b001: ctr <= 22'b0100011100000011001000; // csrrw
+	3'b010: ctr <= 22'b0110011100000011001000; // csrrs
         3'b000: begin
-	  if (inst20) begin ctr = {22{1'b1}}; set_npc_state(2); end //ebreak
-          else if (inst21) begin ctr = 22'b1000011101000000000111; end // mret
-	  else begin ctr = 22'b0010011101000000101111; end // ecall
+	  if (inst20) begin ctr <= {22{1'b1}}; set_npc_state(2); end //ebreak
+          else if (inst21) begin ctr <= 22'b1000011101000000000111; end // mret
+	  else begin ctr <= 22'b0010011101000000101111; end // ecall
 	end
-        default: begin ctr = {22{1'b1}}; set_npc_state(2); end
+        default: begin ctr <= {22{1'b1}}; set_npc_state(2); end
       endcase
     end
-    default: begin ctr = {22{1'b1}}; set_npc_state(2); end
+    default: begin ctr <= {22{1'b1}}; set_npc_state(2); end
   endcase
-  ExtOp = ctr[2:0];
-  ALUBsrc = ctr[4:3];
-  ALUAsrc = ctr[5];
-  ALUctr = ctr[9:6];
-  Regw = ctr[10];
-  branch = ctr[13:11];
-  MemOp = ctr[16:14];
-  MemtoReg = ctr[17];
-  MemWr = ctr[18];
-  CSRctr = ctr[21:19];
-  IDU_valid = 1;
+  IDU_valid <= 1;
+  // $display("IDU");
   end
+  // $display("memop: %b", MemOp);
+  // $display("ctr: %b", ctr);
 end
+
+assign  ExtOp = ctr[2:0];
+assign  ALUBsrc = ctr[4:3];
+assign  ALUAsrc = ctr[5];
+assign  ALUctr = ctr[9:6];
+assign  Regw = ctr[10];
+assign  branch = ctr[13:11];
+assign  MemOp = ctr[16:14];
+assign  MemtoReg = ctr[17];
+assign  MemWr = ctr[18];
+assign  CSRctr = ctr[21:19];
+
 endmodule
 
 module Idu(
@@ -180,23 +185,14 @@ module Idu(
 );
   wire [2:0] extop;
   wire syn_IFU_IDU, syn_IDU_EXU;
-  reg state_in, state_out;
-  parameter [0:0] wready = 0, idle = 1;
-  MuxKey #(2, 1, 1) si (state_out, state_in, {
-    wready, EXU_ready ? idle : wready,
-    idle, IDU_valid ? wready : idle
-  });
   assign syn_IFU_IDU = IFU_valid & IDU_ready;
   assign syn_IDU_EXU = IDU_valid & EXU_ready;
-  always @(posedge clk) begin
-    state_in = state_out;
-  end
 
   always @(posedge clk) begin
-    if (syn_IFU_IDU) IDU_ready = 0;
+    if (syn_IFU_IDU) IDU_ready <= 0;
     if (syn_IDU_EXU) begin 
-      IDU_valid = 0;
-      IDU_ready = 1;
+      IDU_valid <= 0;
+      IDU_ready <= 1;
     end
   end
   ContrGen cg (
@@ -217,7 +213,7 @@ module Idu(
   .MemWr(memwr),
   .IDU_valid(IDU_valid),
   .clk(clk),
-  .state(state_in));
+  .syn(syn_IFU_IDU));
 
   RegisterFile rf (
   .Ra(inst[19:15]),

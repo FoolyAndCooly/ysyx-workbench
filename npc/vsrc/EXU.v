@@ -2,7 +2,6 @@ import "DPI-C" function int pmem_read(input int raddr, input int len);
 import "DPI-C" function void pmem_write(
   input int waddr, input byte len, input int wdata);
 
-
 module Alu(
   input [31:0] a,
   input [31:0] b,
@@ -59,35 +58,6 @@ module BranchCond(
   end
 endmodule
 
-module DataMem(
-  input [31:0] addr,
-  input [31:0] data,
-  input [2:0] MemOp,
-  input MemWr,
-  input clk,
-  output reg [31:0] data_out,
-  input state,
-  output reg EXU_valid
-);
-  reg [31:0] dat;
-  always @(posedge clk) begin
-    if (state) begin
-      case ({MemWr,MemOp})
-        4'b1000: pmem_write(addr, 1, data);
-        4'b1001: pmem_write(addr, 2, data);
-        4'b1010: pmem_write(addr, 4, data);
-        4'b0000: begin dat = pmem_read(addr,1); data_out = {{24{dat[7]}},dat[7:0]}; end // lb
-        4'b0001: begin dat = pmem_read(addr,2); data_out = {{16{dat[15]}},dat[15:0]}; end//lh
-        4'b0010: data_out = pmem_read(addr,4); //lw
-        4'b0100: begin dat = pmem_read(addr,1); data_out = {24'b0,dat[7:0]}; end // lbu
-        4'b0101: begin dat = pmem_read(addr,2); data_out = {16'b0,dat[15:0]}; end // lhu
-        default: data_out = 0;
-      endcase
-      EXU_valid = 1;
-    end
-  end
-endmodule
-
 module Exu(
   input clk,
   input [31:0] src1,
@@ -107,26 +77,26 @@ module Exu(
   output reg EXU_ready,
   output reg EXU_valid,
   input reg WBU_ready,
-  input reg IDU_valid
+  input reg IDU_valid,
+  output reg [31:0] data_out,
+  output reg arvalid,
+  output reg awvalid,
+  output reg arready,
+  output reg awready,
+  input memfinish,
+  output reg [31:0]res
   );
-  reg state_in, state_out;
   wire syn_IDU_EXU, syn_EXU_WBU;
-  parameter [0:0] wready = 0, idle = 1;
-  MuxKey #(2, 1, 1) si (state_out, state_in, {
-    wready, WBU_ready ? idle : wready,
-    idle, EXU_valid ? wready : idle
-  });
   assign syn_IDU_EXU = IDU_valid & EXU_ready;
   assign syn_EXU_WBU = EXU_valid & WBU_ready;
   always @(posedge clk) begin
-    state_in = state_out;
-  end
-
-  always @(posedge clk) begin
-    if (syn_IDU_EXU) EXU_ready = 0;
+    if (syn_IDU_EXU) begin 
+      // $display("EXU");
+      EXU_ready <= 0;
+    end
     if (syn_EXU_WBU) begin
-      EXU_valid = 0;
-      EXU_ready = 1;
+      EXU_valid <= 0;
+      EXU_ready <= 1;
     end
   end
 
@@ -142,7 +112,6 @@ module Exu(
     2'b10, 32'd4
   });
   wire less, zero;
-  wire [31:0] res;
   Alu a0 (.a (a), .b(b), .ctr(aluctr), .ans(res), .less(less), .zero(zero));
   BranchCond bc(
   .branch(branch),
@@ -150,17 +119,39 @@ module Exu(
   .less(less),
   .PCAsrc(PCAsrc),
   .PCBsrc(PCBsrc));
-  wire [31:0] data_out;
-  DataMem dm (
-  .addr(res),
-  .data(src2),
-  .MemOp(memop),
-  .MemWr(memwr),
-  .clk(clk),
-  .data_out(data_out),
-  .state(state_in),
-  .EXU_valid(EXU_valid)
-  );
+
+  reg state;
+
+  always @(posedge clk) begin
+    if (syn_IDU_EXU & ~memwr & (memop != 3'b111)) begin
+      arvalid <= 1;
+      state <= 1;
+    end 
+    else begin
+      if (arready & arvalid) begin
+        arvalid <= 0;
+      end
+    end
+    if (syn_IDU_EXU & memwr & (memop != 3'b111)) begin
+      awvalid <= 1;
+      state <= 1;
+    end 
+    else begin
+      if (awready & awvalid) begin
+        awvalid <= 0;
+      end
+    end
+
+    if (syn_IDU_EXU & (memop == 3'b111)) begin
+      EXU_valid <= 1;
+    end
+    // $display("state: %d, memfinish: %d", state, memfinish);
+    if (state & memfinish) begin
+      EXU_valid <= 1;
+      state <= 0;
+    end
+  end
+  
   MuxKey #(2, 1, 32)  mr (wd, memtoreg, {
     1'b0, res,
     1'b1, data_out

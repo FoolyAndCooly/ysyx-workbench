@@ -3,7 +3,7 @@
 #include <readline/history.h>
 
 static int is_batch_mode = false;
-void cpu_exec(uint64_t n);
+void cpu_exec(uint64_t n, int type);
 void reg_display();
 uint32_t expr(char *e, bool *success);
 extern "C" int pmem_read(int addr, int len);
@@ -26,7 +26,7 @@ static char* rl_gets() {
 }
 
 static int cmd_c(char *args) {
-  cpu_exec(-1);
+  cpu_exec(-1, 1);
   return 0;
 }
 
@@ -34,11 +34,20 @@ static int cmd_q(char *args) {
   return -1;
 }
 
+static int cmd_cyc(char *args) {
+   if (args != NULL) {
+    cpu_exec(atoi(args), 0);
+  } else {
+    cpu_exec(1, 0);
+  }
+  return 0;
+}
+
 static int cmd_si(char *args) {
   if (args != NULL) {
-    cpu_exec(atoi(args));
+    cpu_exec(atoi(args), 1);
   } else {
-    cpu_exec(1);
+    cpu_exec(1, 1);
   }
   return 0;
 }
@@ -81,6 +90,7 @@ static struct {
   { "info", "print statement", cmd_info },
   { "x", "scan memory", cmd_x},
   { "p", "compute expr", cmd_p},
+  { "cyc", "per cycle", cmd_cyc},
  // { "w", "watch point", cmd_w},
  // { "d", "delete watch point", cmd_d}
 

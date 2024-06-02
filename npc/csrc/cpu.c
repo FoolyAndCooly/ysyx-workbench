@@ -6,6 +6,7 @@
 #include <top.h>
 
 #define IRING_LEN 16
+#define CYCLE 1
 
 void difftest_step(uint32_t pc);
 
@@ -31,18 +32,21 @@ extern "C" void set_npc_state(int state){
 
 void init_top() {
   top->clk = 0;
-  top->rootp->top__DOT__IFU_valid = 0;
+  // top->rootp->top__DOT__IFU_valid = 0;
   top->rootp->top__DOT__IDU_valid = 0;
   top->rootp->top__DOT__EXU_valid = 0;
-  top->rootp->top__DOT__WBU_finish = 1;
+  top->rootp->top__DOT__WBU_valid = 1;
+  top->rootp->top__DOT__IFU_ready = 1;
   top->rootp->top__DOT__IDU_ready = 1;
   top->rootp->top__DOT__EXU_ready = 1;
   top->rootp->top__DOT__WBU_ready = 1;
+  // top->rootp->top__DOT__arbiter__DOT__dm__DOT__wready = 1;
+  // top->rootp->top__DOT__arbiter__DOT__dm__DOT__rready = 1;
   top->rootp->top__DOT__pc = 0x80000000;
   top->rootp->top__DOT__csr[1] = 0x1800;
 }
 
-void exec_once(){
+void cycle(){
   top->clk = 0;
   // top->inst = pmem_read(top->pc,4);
   // printf("pc : %08x\n", top->rootp->top__DOT__pc);
@@ -54,24 +58,26 @@ void exec_once(){
 
 static void trace_and_difftest(uint32_t pre_pc) {
   //IFDEF(CONFIG_DIFFTEST, difftest_step());
-  iringbuf[iring_point] = top->rootp->top__DOT__inst;
+  // iringbuf[iring_point] = top->rootp->top__DOT__inst;
   iring_step();
   difftest_step(pre_pc);
 }
 
 
-void execute(uint64_t n) {
+void execute(uint64_t n, int type) {
   uint32_t pre_pc;
   for (;n > 0; n --) {
     pre_pc = top->rootp->top__DOT__pc;
-    exec_once();
-    // trace_and_difftest(pre_pc);
+    if (type) {do{cycle();} while(!top->rootp->top__DOT__WBU_valid);}
+    else {do{cycle();} while(0);}
+    // printf("difftext pc: %08x\n", pre_pc);
+    if (type) trace_and_difftest(pre_pc);
     if (npc_state.state != NPC_RUNNING) break;
   }
 }
 
 /* Simulate how the CPU works. */
-void cpu_exec(uint64_t n) {
+void cpu_exec(uint64_t n, int type) {
   // g_print_step = (n < MAX_INST_TO_PRINT);
   switch (npc_state.state) {
     case NPC_END: case NPC_ABORT:
@@ -81,7 +87,7 @@ void cpu_exec(uint64_t n) {
   }
 
 
-  execute(n);
+  execute(n, type);
 
   switch (npc_state.state) {
     case NPC_RUNNING: npc_state.state = NPC_STOP; break;
