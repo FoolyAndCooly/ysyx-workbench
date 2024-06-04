@@ -14,7 +14,7 @@ static uint8_t pmem[MSIZE] = {
 uint64_t get_time();
 uint8_t* guest_to_host(uint32_t paddr) {return pmem + paddr - MBASE; }
 
-extern "C" int pmem_read(int addr, int len) {
+extern "C" int pmem_read(int addr, int mask) {
   // printf("read 0x%08x\n", (uint32_t)addr);
   // printf("read 0x%08x   val: 0x0%08x\n", (uint32_t)addr, *(uint32_t*)(guest_to_host(addr & ~0x3u)));
   int offset = (uint32_t)addr - RTC_ADDR;
@@ -23,10 +23,10 @@ extern "C" int pmem_read(int addr, int len) {
     if (offset == 0) return us;
     else return us >> 32;
   }
-  switch (len) {
+  switch (mask) {
     case 1: return *(uint8_t *)(guest_to_host(addr));
-    case 2: return *(uint16_t*)(guest_to_host(addr));
-    case 4: return *(uint32_t*)(guest_to_host(addr));
+    case 3: return *(uint16_t*)(guest_to_host(addr));
+    case 15: return *(uint32_t*)(guest_to_host(addr));
     default: return 0;
   }
 }
