@@ -152,9 +152,21 @@ always @(posedge clk) begin
   end
 end
 
+reg [31:0] data_out;
+always @(*) begin 
+  case (memop)
+    3'b000: data_out = {{24{rdata[7]}}, rdata[7:0]};
+    3'b001: data_out = {{16{rdata[15]}}, rdata[15:0]};
+    3'b010: data_out = rdata[31:0];
+    3'b100: data_out = {24'b0, rdata[7:0]};
+    3'b101: data_out = {16'b0, rdata[15:0]};
+    default: data_out = 0;
+  endcase
+end
+
 MuxKey #(2, 1, 32)  mr (wd, memtoreg, {
   1'b0, res,
-  1'b1, rdata[31:0]
+  1'b1, data_out
 });
 
 /*************AXI-master**************/
@@ -174,8 +186,8 @@ reg        reg_bready ;
 wire wstart;
 wire rstart;
 /*************assign**************/
-assign wstart = syn_IDU_EXU & ~memwr & (memop != 3'b111);
-assign rstart = syn_IDU_EXU & memwr & (memop != 3'b111) ;
+assign wstart = syn_IDU_EXU & memwr & (memop != 3'b111);
+assign rstart = syn_IDU_EXU & ~memwr & (memop != 3'b111) ;
 
 assign awvalid = reg_awvalid;
 assign awaddr  = reg_awaddr ;
@@ -212,8 +224,9 @@ always @(posedge clk) begin
 end
 
 always @(posedge clk) begin
-  if (wstart) 
+  if (wstart) begin
     reg_awaddr <= res;
+  end
   else
     reg_awaddr <= reg_awaddr;
 end
@@ -228,8 +241,9 @@ always @(posedge clk) begin
 end
 
 always @(posedge clk) begin
-  if (wvalid & wready)
+  if (wvalid & wready) begin
     reg_wdata <= src2;
+  end
   else 
     reg_wdata <= reg_wdata;
 end
@@ -246,15 +260,16 @@ end
 always @(posedge clk) begin
   if (arvalid & arready)
     reg_arvalid <= 'd0;
-  else if (rstart)
+  else if (rstart) begin
     reg_arvalid <= 'd1;
+  end
   else 
     reg_arvalid <= reg_arvalid;
 end
 
 always @(posedge clk) begin
   if (rstart)
-    reg_araddr <= src2;
+    reg_araddr <= res;
   else 
     reg_araddr <= reg_araddr;
 end

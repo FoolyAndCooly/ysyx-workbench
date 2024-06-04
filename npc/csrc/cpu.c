@@ -40,8 +40,9 @@ void init_top() {
   top->rootp->top__DOT__IDU_ready = 1;
   top->rootp->top__DOT__EXU_ready = 1;
   top->rootp->top__DOT__WBU_ready = 1;
-  // top->rootp->top__DOT__arbiter__DOT__dm__DOT__wready = 1;
-  // top->rootp->top__DOT__arbiter__DOT__dm__DOT__rready = 1;
+  top->rootp->top__DOT__dm__DOT__reg_arready = 1;
+  top->rootp->top__DOT__dm__DOT__reg_awready = 1;
+  top->rootp->top__DOT__uart__DOT__reg_awready = 1;
   top->rootp->top__DOT__pc = 0x80000000;
   top->rootp->top__DOT__csr[1] = 0x1800;
 }

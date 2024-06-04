@@ -89,7 +89,7 @@ assign awburst = 2'b01      ;
 
 assign wvalid  = reg_wvalid ;
 assign wdata   = reg_wdata  ;
-assign wstrb   = 8'b11111111;
+assign wstrb   = 8'b00001111;
 assign wlast   = wvalid & wready;
 
 assign arvalid = reg_arvalid;
@@ -106,8 +106,9 @@ assign bready  = reg_bready ;
 /*************process**************/
 
 always @(posedge clk) begin
-  if (awvalid & awready)
+  if (awvalid & awready) begin 
     reg_awvalid <= 'd0;
+  end
   else if(wstart)
     reg_awvalid <= 'd1;
   else
