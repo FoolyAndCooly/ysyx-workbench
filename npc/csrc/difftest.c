@@ -39,9 +39,9 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
   ref_difftest_memcpy(CONFIG_MBASE, guest_to_host(CONFIG_MBASE), img_size, DIFFTEST_TO_REF);
   CPU_state cpu;
   for (int i = 0; i < 32; i++) {
-    cpu.gpr[i] = top->rootp->top__DOT__rf[i];
+    cpu.gpr[i] = top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__rf[i];
   }
-  cpu.pc = top->rootp->top__DOT__pc;
+  cpu.pc = top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__pc;
   ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
 }
 

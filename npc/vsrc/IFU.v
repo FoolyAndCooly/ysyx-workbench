@@ -1,4 +1,4 @@
-module Ifu(
+module ysyx_23060221_Ifu(
   input             clk  ,
   input [31:0]       pc  ,
   input  reg    WBU_valid,
@@ -55,7 +55,6 @@ end
 
 assign memfinish = (bvalid & bready) | (rvalid & rready);
 always @(posedge clk) begin
-  //$display("memfinish %d", memfinish);
   if (memfinish) begin
     IFU_valid <= 1;
   end

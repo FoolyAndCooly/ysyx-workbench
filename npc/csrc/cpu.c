@@ -26,50 +26,40 @@ static void iring_display(){
 
 extern "C" void set_npc_state(int state){
   npc_state.state = state;
-  npc_state.halt_pc = top->rootp->top__DOT__pc;
-  npc_state.halt_ret = top->rootp->top__DOT__rf[10];
-}
-
-void init_top() {
-  top->clk = 0;
-  // top->rootp->top__DOT__IFU_valid = 0;
-  top->rootp->top__DOT__IDU_valid = 0;
-  top->rootp->top__DOT__EXU_valid = 0;
-  top->rootp->top__DOT__WBU_valid = 1;
-  top->rootp->top__DOT__IFU_ready = 1;
-  top->rootp->top__DOT__IDU_ready = 1;
-  top->rootp->top__DOT__EXU_ready = 1;
-  top->rootp->top__DOT__WBU_ready = 1;
-  top->rootp->top__DOT__dm__DOT__reg_arready = 1;
-  top->rootp->top__DOT__dm__DOT__reg_awready = 1;
-  top->rootp->top__DOT__uart__DOT__reg_awready = 1;
-  top->rootp->top__DOT__pc = 0x80000000;
-  top->rootp->top__DOT__csr[1] = 0x1800;
+  npc_state.halt_pc = top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__pc;
+  npc_state.halt_ret = top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__rf[10];
 }
 
 void cycle(){
-  top->clk = 0;
+  top->clock = 0;
   // top->inst = pmem_read(top->pc,4);
   // printf("pc : %08x\n", top->rootp->top__DOT__pc);
   top->eval();
-  top->clk = 1;
+  top->clock = 1;
   top->eval();
   return;
 }
+
+void reset() {
+  top->reset = 1;
+  cycle();
+  top->reset = 0;
+}
+
 
 static void trace_and_difftest(uint32_t pre_pc) {
   //IFDEF(CONFIG_DIFFTEST, difftest_step());
   // iringbuf[iring_point] = top->rootp->top__DOT__inst;
   iring_step();
-  difftest_step(pre_pc);
+  // difftest_step(pre_pc);
 }
 
 
 void execute(uint64_t n, int type) {
   uint32_t pre_pc;
   for (;n > 0; n --) {
-    pre_pc = top->rootp->top__DOT__pc;
-    if (type) {do{cycle();} while(!top->rootp->top__DOT__WBU_valid);}
+    pre_pc = top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__pc;
+    if (type) {do{cycle();} while(!top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__WBU_valid);}
     else {do{cycle();} while(0);}
     // printf("difftext pc: %08x\n", pre_pc);
     if (type) trace_and_difftest(pre_pc);

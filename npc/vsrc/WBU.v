@@ -22,7 +22,7 @@ module PC_Gen(
   end
 endmodule
 
-module Wbu (
+module ysyx_23060221_Wbu (
   input [31:0] wdata,
   input [4:0] waddr,
   input [31:0] rs1,

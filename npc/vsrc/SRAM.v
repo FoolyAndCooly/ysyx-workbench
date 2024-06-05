@@ -1,5 +1,6 @@
-module DataMem(
+module ysyx_23060221_DataMem(
   input clk,
+  input reset,
   output        awready,
   input         awvalid,
   input [31:0]  awaddr ,
@@ -30,6 +31,7 @@ module DataMem(
   output        rlast  ,
   output [3:0]  rid    
 );
+
 /*************AXI-master**************/
 
 /*************register**************/
@@ -103,7 +105,9 @@ always @(posedge clk) begin
 end
 
 always @(posedge clk) begin
-  if (wlast)
+  if (reset)
+    reg_awready <= 'd1;
+  else if (wlast)
     reg_awready <= 'd1;
   else if (awactive)
     reg_awready <= 'd0;
@@ -168,7 +172,10 @@ always @(posedge clk) begin
 end
 
 always @(posedge clk) begin
-  if (rlast)
+  if (reset) begin
+    reg_arready <= 'd1;
+  end
+  else if (rlast)
     reg_arready <= 'd1;
   else if (aractive)
     reg_arready <= 'd0;

@@ -1,5 +1,6 @@
-module Uart(
+module ysyx_23060221_Uart(
   input clk,
+  input reset,
   output        awready,
   input         awvalid,
   input [31:0]  awaddr ,
@@ -30,6 +31,7 @@ module Uart(
   output        rlast  ,
   output [3:0]  rid    
   );
+
 /*************AXI-master**************/
 
 /*************register**************/
@@ -103,7 +105,9 @@ always @(posedge clk) begin
 end
 
 always @(posedge clk) begin
-  if (wlast)
+  if (reset)
+    reg_awready <= 'd1;
+  else if (wlast)
     reg_awready <= 'd1;
   else if (awactive)
     reg_awready <= 'd0;

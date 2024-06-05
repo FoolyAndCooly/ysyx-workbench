@@ -58,7 +58,7 @@ module BranchCond(
   end
 endmodule
 
-module Exu(
+module ysyx_23060221_Exu(
   input         clk      ,
   input  [31:0] src1     ,
   input  [31:0] src2     ,

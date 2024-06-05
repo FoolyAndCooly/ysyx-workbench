@@ -1,5 +1,5 @@
-#include <Vtop.h>
-#include <Vtop___024root.h>
+#include <VysyxSoCFull.h>
+#include <VysyxSoCFull___024root.h>
 
-extern Vtop* top;
+extern VysyxSoCFull* top;
 

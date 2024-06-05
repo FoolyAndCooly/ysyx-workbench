@@ -160,7 +160,7 @@ assign  CSRctr = ctr[21:19];
 
 endmodule
 
-module Idu(
+module ysyx_23060221_Idu(
   input [31:0] inst,
   input clk,
   output [3:0] aluctr,

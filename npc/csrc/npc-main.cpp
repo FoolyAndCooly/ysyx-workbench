@@ -1,15 +1,21 @@
 #include <verilated.h>
-#include <Vtop.h>
-extern Vtop* top;
-void init_top();
+#include <VysyxSoCFull.h>
+extern VysyxSoCFull* top;
+void reset();
 void init_monitor(int, char*[]);
 void sdb_mainloop();
 int is_exit_status_bad();
 
-Vtop* top = NULL;
+extern "C" void flash_read(int32_t addr, int32_t *data) { assert(0); }
+extern "C" void mrom_read(int32_t addr, int32_t *data) {
+  *data = 0x00100073;
+}
+
+VysyxSoCFull* top = NULL;
 int main(int argc, char* argv[]) {
-  top = new Vtop;
-  init_top();
+  Verilated::commandArgs(argc, argv);
+  top = new VysyxSoCFull;
+  reset();
 
   init_monitor(argc, argv);
   sdb_mainloop();
