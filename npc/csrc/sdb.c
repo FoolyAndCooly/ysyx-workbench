@@ -5,6 +5,7 @@
 static int is_batch_mode = false;
 void cpu_exec(uint64_t n, int type);
 void reg_display();
+void reset();
 uint32_t expr(char *e, bool *success);
 extern "C" int pmem_read(int addr, int len);
 
@@ -126,8 +127,11 @@ void sdb_set_batch_mode() {
 }
 
 void sdb_mainloop() {
+  reset();
   if (is_batch_mode) {
     cmd_c(NULL);
+    // int n = 3;
+    // while (n--) cmd_cyc(NULL);
     return;
   }
 

@@ -1,23 +1,31 @@
 #include <verilated.h>
 #include <VysyxSoCFull.h>
+#include <verilated_vcd_c.h>
+
 extern VysyxSoCFull* top;
-void reset();
+extern VerilatedVcdC* m_trace;
+
 void init_monitor(int, char*[]);
 void sdb_mainloop();
 int is_exit_status_bad();
 
-extern "C" void flash_read(int32_t addr, int32_t *data) { assert(0); }
-extern "C" void mrom_read(int32_t addr, int32_t *data) {
-  *data = 0x00100073;
-}
-
+int sim_time = 0;
 VysyxSoCFull* top = NULL;
+VerilatedVcdC* m_trace = NULL;
+
 int main(int argc, char* argv[]) {
   Verilated::commandArgs(argc, argv);
+  setvbuf(stdout, NULL, _IONBF, 0);
   top = new VysyxSoCFull;
-  reset();
 
+  m_trace = new VerilatedVcdC;
+  Verilated::traceEverOn(true);
+  top->trace(m_trace, 5);
+  m_trace->open("waveform.vcd");
+  
   init_monitor(argc, argv);
   sdb_mainloop();
+
+  m_trace->close();
   return is_exit_status_bad();
 }

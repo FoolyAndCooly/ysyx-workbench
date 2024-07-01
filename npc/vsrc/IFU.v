@@ -1,6 +1,8 @@
 module ysyx_23060221_Ifu(
   input             clk  ,
+  input             rst  ,
   input [31:0]       pc  ,
+  output [31:0]      inst,
   input  reg    WBU_valid,
   input  reg    IDU_ready,
   output reg    IFU_valid,
@@ -46,19 +48,30 @@ always @(posedge clk) begin
   // $strobe("IFU_valid %d", IFU_valid);
   // $strobe("WBU_valid %d", WBU_valid);
   // $strobe("IFU_ready %d", IFU_ready);
-  if (syn_WBU_IFU) IFU_ready <= 0;
-  if (syn_IFU_IDU) begin 
-    IFU_valid <= 0;
+  if (rst) begin
     IFU_ready <= 1;
+  end
+  else begin
+    if (syn_WBU_IFU) begin 
+      IFU_ready <= 0;
+      // $display("IFU");
+    end
+    if (syn_IFU_IDU) begin 
+      IFU_valid <= 0;
+      IFU_ready <= 1;
+    end
   end
 end
 
-assign memfinish = (bvalid & bready) | (rvalid & rready);
 always @(posedge clk) begin
-  if (memfinish) begin
+  if (rst)
+    IFU_valid <= 0;
+  else if (memfinish) 
     IFU_valid <= 1;
-  end
 end
+
+assign memfinish = (bvalid & bready) | (rvalid & rready);
+
 /*************AXI-master**************/
 
 /*************register**************/
@@ -76,31 +89,33 @@ reg        reg_bready ;
 wire wstart;
 wire rstart;
 /*************assign**************/
+assign inst = reg_rdata[31:0];
+
 assign wstart = 0;
 assign rstart = syn_WBU_IFU;
 
 assign awvalid = reg_awvalid;
 assign awaddr  = reg_awaddr ;
 assign awid    = 'd0        ;    
-assign awlen   = 'd1        ;
+assign awlen   = 'd0        ;
 assign awsize  = 3'b010     ;
-assign awburst = 2'b01      ;
+assign awburst = 2'b00      ;
 
 assign wvalid  = reg_wvalid ;
 assign wdata   = reg_wdata  ;
-assign wstrb   = 8'b00001111;
+assign wstrb   = 8'b00000000;
 assign wlast   = wvalid & wready;
 
 assign arvalid = reg_arvalid;
 assign araddr  = reg_araddr ;
 assign arid    = 'd0        ;
 assign arsize  = 3'b010     ;
-assign arlen   = 'd1        ;
-assign arburst = 2'b01      ;
+assign arlen   = 'd0        ;
+assign arburst = 2'b00      ;
 
 assign rready  = reg_rready ;
 
-assign bready  = reg_bready ;
+assign bready  = 'd1        ;
 
 /*************process**************/
 
@@ -130,25 +145,19 @@ always @(posedge clk) begin
     reg_wvalid <= reg_wvalid;
 end
 
-always @(posedge clk) begin
-  if (wvalid & wready)
-    reg_wdata <= 'd0;
-  else 
-    reg_wdata <= reg_wdata;
-end
+// always @(posedge clk) begin
+//   if (bvalid & bready)
+//     reg_bready <= 'd0;
+//   else if (wlast)
+//     reg_bready <= 'd1;
+//   else 
+//     reg_bready <= reg_bready;
+// end
 
 always @(posedge clk) begin
-  if (bvalid & bready)
-    reg_bready <= 'd0;
-  else if (wlast)
-    reg_bready <= 'd1;
-  else 
-    reg_bready <= reg_bready;
-end
-
-always @(posedge clk) begin
-  if (arvalid & arready)
+  if (arvalid & arready) begin
     reg_arvalid <= 'd0;
+  end
   else if (rstart)
     reg_arvalid <= 'd1;
   else 
@@ -165,8 +174,9 @@ end
 always @(posedge clk) begin
   if (rlast)
     reg_rready <= 'd0;
-  else if (arvalid & arready)
+  else if (arvalid & arready) begin
     reg_rready <= 'd1;
+  end
   else 
     reg_rready <= reg_rready;
 end

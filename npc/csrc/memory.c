@@ -1,7 +1,6 @@
 #include <memory.h>
 #include <device.h>
 
-#define MBASE 0x80000000
 #define MSIZE 0x40000000
 
 static uint8_t pmem[MSIZE] = {
@@ -12,7 +11,12 @@ static uint8_t pmem[MSIZE] = {
 };
 
 uint64_t get_time();
-uint8_t* guest_to_host(uint32_t paddr) {return pmem + paddr - MBASE; }
+uint8_t* guest_to_host(uint32_t paddr) {return pmem + paddr - CONFIG_MBASE; }
+
+extern "C" void flash_read(int32_t addr, int32_t *data) { assert(0); }
+extern "C" void mrom_read(int32_t addr, int32_t *data) {
+  *data = *(uint32_t*)(guest_to_host(addr));
+}
 
 extern "C" int pmem_read(int addr, int len) {
   // printf("read 0x%08x\n", (uint32_t)addr);

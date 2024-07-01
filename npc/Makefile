@@ -1,6 +1,7 @@
 TOPNAME = ysyxSoCFull
 
 WORK_DIR = $(shell pwd)
+IMG = $(WORK_DIR)/code/char-test.bin
 INC_PATH = $(WORK_DIR)/include
 INV_PATH += $(abspath $(WORK_DIR)/../ysyxSoC/perip/uart16550/rtl)
 INV_PATH += $(abspath $(WORK_DIR)/../ysyxSoC/perip/spi/rtl)
@@ -40,11 +41,12 @@ $(BIN): $(VSRCS) $(CSRCS)
 		$(addprefix -CFLAGS , $(CXXFLAGS)) $(addprefix -LDFLAGS , $(LDFLAGS)) \
 		$(INVFLAGS) \
 		--Mdir $(OBJ_DIR) --exe -o $(abspath $(BIN)) \
-		--timescale "1ns/1ns" --no-timing
+		--timescale "1ns/1ns" --no-timing --trace
 all: default
 
 run: $(BIN)
-	@$^ -b $(LIB_SO) $(IMG)
+	@$^ -d $(LIB_SO) $(IMG) 
+	# @$^ $(IMG)
 	$(call git_commit, "sim RTL")
 
 clean:

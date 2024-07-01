@@ -62,24 +62,6 @@ module ysyx_23060221(
   output	[3:0]	io_slave_rid    
 );
 
-assign io_master_awvalid = 0; 
-assign io_master_awaddr  = 0; 
-assign io_master_awid	 = 0;  
-assign io_master_awlen	 = 0;  
-assign io_master_awsize  = 0; 
-assign io_master_awburst = 0; 
-assign io_master_wvalid  = 0; 
-assign io_master_wdata	 = 0;  
-assign io_master_wstrb	 = 0;  
-assign io_master_wlast	 = 0;  
-assign io_master_bready  = 0;  
-assign io_master_arvalid = 0; 
-assign io_master_araddr  = 0;  
-assign io_master_arid	 = 0;   
-assign io_master_arlen	 = 0;   
-assign io_master_arsize  = 0;   
-assign io_master_arburst = 0;   
-assign io_master_rready  = 0;   
 assign io_slave_awready  = 0;  
 assign io_slave_wready   = 0;  
 assign io_slave_bvalid   = 0;  
@@ -90,18 +72,17 @@ assign io_slave_rvalid   = 0;
 assign io_slave_rresp    = 0; 
 assign io_slave_rdata    = 0; 
 assign io_slave_rlast    = 0; 
-assign io_slave_rid      = 0;  
+assign io_slave_rid      = 0; 
 
 
 reg IFU_valid, IFU_ready, IDU_ready, IDU_valid, EXU_ready, EXU_valid, WBU_ready, WBU_valid;
 
-reg [31:0] res;
 reg [31:0] pc;
 reg [31:0] csr[3:0];
 reg [31:0] rf[31:0];
-reg [31:0] inst;
 
-
+wire [31:0] inst;
+wire [31:0] res;
 wire [31:0] src1, src2;
 wire [31:0] imm;
 wire PCAsrc, PCBsrc;
@@ -176,85 +157,40 @@ wire [1:0]  exu_rresp   ;
 wire [63:0] exu_rdata   ;
 wire        exu_rlast   ;
 wire [3:0]  exu_rid     ;
-wire        sram_awready;
-wire        sram_awvalid;
-wire [31:0] sram_awaddr ;
-wire [3:0]  sram_awid   ;
-wire [7:0]  sram_awlen  ;
-wire [2:0]  sram_awsize ;
-wire [1:0]  sram_awburst;
-wire        sram_wready ;
-wire        sram_wvalid ;
-wire [63:0] sram_wdata  ;
-wire [7:0]  sram_wstrb  ;
-wire        sram_wlast  ;
-wire        sram_bready ;
-wire        sram_bvalid ;
-wire [1:0]  sram_bresp  ;
-wire [3:0]  sram_bid    ;
-wire        sram_arready;
-wire        sram_arvalid;
-wire [31:0] sram_araddr ;
-wire [3:0]  sram_arid   ;
-wire [7:0]  sram_arlen  ;
-wire [2:0]  sram_arsize ;
-wire [1:0]  sram_arburst;
-wire        sram_rready ;
-wire        sram_rvalid ;
-wire[1:0]   sram_rresp  ;
-wire[63:0]  sram_rdata  ;
-wire        sram_rlast  ;
-wire[3:0]   sram_rid    ;
-wire        uart_awready;
-wire        uart_awvalid;
-wire [31:0] uart_awaddr ;
-wire [3:0]  uart_awid   ;
-wire [7:0]  uart_awlen  ;
-wire [2:0]  uart_awsize ;
-wire [1:0]  uart_awburst;
-wire        uart_wready ;
-wire        uart_wvalid ;
-wire [63:0] uart_wdata  ;
-wire [7:0]  uart_wstrb  ;
-wire        uart_wlast  ;
-wire        uart_bready ;
-wire        uart_bvalid ;
-wire [1:0]  uart_bresp  ;
-wire [3:0]  uart_bid    ;
-wire        uart_arready;
-wire        uart_arvalid;
-wire [31:0] uart_araddr ;
-wire [3:0]  uart_arid   ;
-wire [7:0]  uart_arlen  ;
-wire [2:0]  uart_arsize ;
-wire [1:0]  uart_arburst;
-wire        uart_rready ;
-wire        uart_rvalid ;
-wire[1:0]   uart_rresp  ;
-wire[63:0]  uart_rdata  ;
-wire        uart_rlast  ;
-wire[3:0]   uart_rid    ;
-
-
-assign inst = ifu_rdata[31:0];
-
 
 always @(posedge clock) begin
-  if (reset) begin
-    WBU_valid <= 1;
-    IFU_ready <= 1;
-    IDU_ready <= 1;
-    EXU_ready <= 1;
-    WBU_ready <= 1;
-    pc <= 32'h80000000;
-    csr[1] <= 32'h1800;
-  end
+  // $display("reset: %d", reset);
+  // $display("IFU_valid: %d", IFU_valid); 
+  // $display("IDU_valid: %d", IDU_valid); 
+  // $display("EXU_valid: %d", EXU_valid); 
+  // $display("WBU_valid: %d", WBU_valid); 
+  // $display("io_master_arvalid: %d",  io_master_arvalid); 
+  // $display("io_master_arready: %d",  io_master_arready); 
+  // $display("io_master_araddr : 0x%08x",  io_master_araddr ); 
+  // $display("io_master_rvalid: %d",  io_master_rvalid); 
+  // $display("io_master_rready: %d",  io_master_rready);
+  // $display("io_master_rdata: 0x%08x",  io_master_rdata[31:0]);
+  // $display("io_master_awvalid: %d",  io_master_awvalid); 
+  // $display("io_master_awready: %d",  io_master_awready); 
+  // $display("io_master_awaddr : 0x%08x",  io_master_awaddr ); 
+  // $display("io_master_wvalid: %d",  io_master_wvalid); 
+  // $display("io_master_wready: %d",  io_master_wready);
+  // $display("io_master_wlast: %d",  io_master_wlast);
+  // $display("io_master_wdata: 0x%08x",  io_master_wdata[31:0]); 
+  // $display("io_master_bvalid: %d",  io_master_bvalid);
+  // $display("io_master_bready: %d",  io_master_bready);
+//   $display("io_master_arid   : %d",  io_master_arid   ); 
+//   $display("io_master_arlen  : %d",  io_master_arlen  ); 
+//   $display("io_master_arsize : %d",  io_master_arsize ); 
+//   $display("io_master_arburst: %d",  io_master_arburst); 
+//   $display("io_master_rready : %d",  io_master_rready ); 
 end
-
 
 ysyx_23060221_Ifu ifu(
   .clk      (clock      )  ,
+  .rst      (reset      )  ,
   .pc       (pc         )  ,
+  .inst     (inst       )  ,
   .WBU_valid(WBU_valid  )  ,
   .IDU_ready(IDU_ready  )  ,
   .IFU_valid(IFU_valid  )  ,
@@ -290,39 +226,40 @@ ysyx_23060221_Ifu ifu(
   .rid      (ifu_rid    )  
   );
 
-ysyx_23060221_DataMem dm(
-  .clk(clock),
-  .reset(reset),
-  .awready  (sram_awready)  ,
-  .awvalid  (sram_awvalid)  ,
-  .awaddr   (sram_awaddr )  ,
-  .awid     (sram_awid   )  ,
-  .awlen    (sram_awlen  )  ,
-  .awsize   (sram_awsize )  ,
-  .awburst  (sram_awburst)  ,
-  .wready   (sram_wready )  ,
-  .wvalid   (sram_wvalid )  ,
-  .wdata    (sram_wdata  )  ,
-  .wstrb    (sram_wstrb  )  ,
-  .wlast    (sram_wlast  )  ,
-  .bready   (sram_bready )  ,
-  .bvalid   (sram_bvalid )  ,
-  .bresp    (sram_bresp  )  ,
-  .bid      (sram_bid    )  ,
-  .arready  (sram_arready)  ,
-  .arvalid  (sram_arvalid)  ,
-  .araddr   (sram_araddr )  ,
-  .arid     (sram_arid   )  ,
-  .arlen    (sram_arlen  )  ,
-  .arsize   (sram_arsize )  ,
-  .arburst  (sram_arburst)  ,
-  .rready   (sram_rready )  ,
-  .rvalid   (sram_rvalid )  ,
-  .rresp    (sram_rresp  )  ,
-  .rdata    (sram_rdata  )  ,
-  .rlast    (sram_rlast  )  ,
-  .rid      (sram_rid    )  
-);
+
+// ysyx_23060221_DataMem dm(
+//   .clk(clock),
+//   .reset(reset),
+//   .awready  (sram_awready)  ,
+//   .awvalid  (sram_awvalid)  ,
+//   .awaddr   (sram_awaddr )  ,
+//   .awid     (sram_awid   )  ,
+//   .awlen    (sram_awlen  )  ,
+//   .awsize   (sram_awsize )  ,
+//   .awburst  (sram_awburst)  ,
+//   .wready   (sram_wready )  ,
+//   .wvalid   (sram_wvalid )  ,
+//   .wdata    (sram_wdata  )  ,
+//   .wstrb    (sram_wstrb  )  ,
+//   .wlast    (sram_wlast  )  ,
+//   .bready   (sram_bready )  ,
+//   .bvalid   (sram_bvalid )  ,
+//   .bresp    (sram_bresp  )  ,
+//   .bid      (sram_bid    )  ,
+//   .arready  (sram_arready)  ,
+//   .arvalid  (sram_arvalid)  ,
+//   .araddr   (sram_araddr )  ,
+//   .arid     (sram_arid   )  ,
+//   .arlen    (sram_arlen  )  ,
+//   .arsize   (sram_arsize )  ,
+//   .arburst  (sram_arburst)  ,
+//   .rready   (sram_rready )  ,
+//   .rvalid   (sram_rvalid )  ,
+//   .rresp    (sram_rresp  )  ,
+//   .rdata    (sram_rdata  )  ,
+//   .rlast    (sram_rlast  )  ,
+//   .rid      (sram_rid    )  
+// );
 
 ysyx_23060221_Arbiter arbiter(
   .clk         (clock)       ,
@@ -384,101 +321,73 @@ ysyx_23060221_Arbiter arbiter(
   .exu_rdata   (exu_rdata   ), 
   .exu_rlast   (exu_rlast   ), 
   .exu_rid     (exu_rid     ),
-  .sram_awready(sram_awready), 
-  .sram_awvalid(sram_awvalid), 
-  .sram_awaddr (sram_awaddr ), 
-  .sram_awid   (sram_awid   ),
-  .sram_awlen  (sram_awlen  ), 
-  .sram_awsize (sram_awsize ), 
-  .sram_awburst(sram_awburst), 
-  .sram_wready (sram_wready ), 
-  .sram_wvalid (sram_wvalid ),
-  .sram_wdata  (sram_wdata  ), 
-  .sram_wstrb  (sram_wstrb  ), 
-  .sram_wlast  (sram_wlast  ), 
-  .sram_bready (sram_bready ),
-  .sram_bvalid (sram_bvalid ), 
-  .sram_bresp  (sram_bresp  ), 
-  .sram_bid    (sram_bid    ),
-  .sram_arready(sram_arready), 
-  .sram_arvalid(sram_arvalid), 
-  .sram_araddr (sram_araddr ),
-  .sram_arid   (sram_arid   ), 
-  .sram_arlen  (sram_arlen  ), 
-  .sram_arsize (sram_arsize ),
-  .sram_arburst(sram_arburst), 
-  .sram_rready (sram_rready ), 
-  .sram_rvalid (sram_rvalid ), 
-  .sram_rresp  (sram_rresp  ),
-  .sram_rdata  (sram_rdata  ), 
-  .sram_rlast  (sram_rlast  ), 
-  .sram_rid    (sram_rid    ),
-  .uart_awready(uart_awready), 
-  .uart_awvalid(uart_awvalid), 
-  .uart_awaddr (uart_awaddr ),
-  .uart_awid   (uart_awid   ), 
-  .uart_awlen  (uart_awlen  ), 
-  .uart_awsize (uart_awsize ), 
-  .uart_awburst(uart_awburst),
-  .uart_wready (uart_wready ), 
-  .uart_wvalid (uart_wvalid ), 
-  .uart_wdata  (uart_wdata  ), 
-  .uart_wstrb  (uart_wstrb  ),
-  .uart_wlast  (uart_wlast  ), 
-  .uart_bready (uart_bready ), 
-  .uart_bvalid (uart_bvalid ),
-  .uart_bresp  (uart_bresp  ), 
-  .uart_bid    (uart_bid    ), 
-  .uart_arready(uart_arready), 
-  .uart_arvalid(uart_arvalid), 
-  .uart_araddr (uart_araddr ),
-  .uart_arid   (uart_arid   ), 
-  .uart_arlen  (uart_arlen  ), 
-  .uart_arsize (uart_arsize ),
-  .uart_arburst(uart_arburst), 
-  .uart_rready (uart_rready ), 
-  .uart_rvalid (uart_rvalid ), 
-  .uart_rresp  (uart_rresp  ),
-  .uart_rdata  (uart_rdata  ), 
-  .uart_rlast  (uart_rlast  ), 
-  .uart_rid    (uart_rid    )
+  .io_master_awready(io_master_awready), 
+  .io_master_awvalid(io_master_awvalid), 
+  .io_master_awaddr (io_master_awaddr ), 
+  .io_master_awid   (io_master_awid   ),
+  .io_master_awlen  (io_master_awlen  ), 
+  .io_master_awsize (io_master_awsize ), 
+  .io_master_awburst(io_master_awburst), 
+  .io_master_wready (io_master_wready ), 
+  .io_master_wvalid (io_master_wvalid ),
+  .io_master_wdata  (io_master_wdata  ), 
+  .io_master_wstrb  (io_master_wstrb  ), 
+  .io_master_wlast  (io_master_wlast  ), 
+  .io_master_bready (io_master_bready ),
+  .io_master_bvalid (io_master_bvalid ), 
+  .io_master_bresp  (io_master_bresp  ), 
+  .io_master_bid    (io_master_bid    ),
+  .io_master_arready(io_master_arready), 
+  .io_master_arvalid(io_master_arvalid), 
+  .io_master_araddr (io_master_araddr ),
+  .io_master_arid   (io_master_arid   ), 
+  .io_master_arlen  (io_master_arlen  ), 
+  .io_master_arsize (io_master_arsize ),
+  .io_master_arburst(io_master_arburst), 
+  .io_master_rready (io_master_rready ), 
+  .io_master_rvalid (io_master_rvalid ), 
+  .io_master_rresp  (io_master_rresp  ),
+  .io_master_rdata  (io_master_rdata  ), 
+  .io_master_rlast  (io_master_rlast  ), 
+  .io_master_rid    (io_master_rid    )
 );
 
-ysyx_23060221_Uart uart(
-  .clk(clock),
-  .reset(reset),
-  .awready  (uart_awready)  ,
-  .awvalid  (uart_awvalid)  ,
-  .awaddr   (uart_awaddr )  ,
-  .awid     (uart_awid   )  ,
-  .awlen    (uart_awlen  )  ,
-  .awsize   (uart_awsize )  ,
-  .awburst  (uart_awburst)  ,
-  .wready   (uart_wready )  ,
-  .wvalid   (uart_wvalid )  ,
-  .wdata    (uart_wdata  )  ,
-  .wstrb    (uart_wstrb  )  ,
-  .wlast    (uart_wlast  )  ,
-  .bready   (uart_bready )  ,
-  .bvalid   (uart_bvalid )  ,
-  .bresp    (uart_bresp  )  ,
-  .bid      (uart_bid    )  ,
-  .arready  (uart_arready)  ,
-  .arvalid  (uart_arvalid)  ,
-  .araddr   (uart_araddr )  ,
-  .arid     (uart_arid   )  ,
-  .arlen    (uart_arlen  )  ,
-  .arsize   (uart_arsize )  ,
-  .arburst  (uart_arburst)  ,
-  .rready   (uart_rready )  ,
-  .rvalid   (uart_rvalid )  ,
-  .rresp    (uart_rresp  )  ,
-  .rdata    (uart_rdata  )  ,
-  .rlast    (uart_rlast  )  ,
-  .rid      (uart_rid    )  
-);
+// ysyx_23060221_Uart uart(
+//   .clk(clock),
+//   .reset(reset),
+//   .awready  (uart_awready)  ,
+//   .awvalid  (uart_awvalid)  ,
+//   .awaddr   (uart_awaddr )  ,
+//   .awid     (uart_awid   )  ,
+//   .awlen    (uart_awlen  )  ,
+//   .awsize   (uart_awsize )  ,
+//   .awburst  (uart_awburst)  ,
+//   .wready   (uart_wready )  ,
+//   .wvalid   (uart_wvalid )  ,
+//   .wdata    (uart_wdata  )  ,
+//   .wstrb    (uart_wstrb  )  ,
+//   .wlast    (uart_wlast  )  ,
+//   .bready   (uart_bready )  ,
+//   .bvalid   (uart_bvalid )  ,
+//   .bresp    (uart_bresp  )  ,
+//   .bid      (uart_bid    )  ,
+//   .arready  (uart_arready)  ,
+//   .arvalid  (uart_arvalid)  ,
+//   .araddr   (uart_araddr )  ,
+//   .arid     (uart_arid   )  ,
+//   .arlen    (uart_arlen  )  ,
+//   .arsize   (uart_arsize )  ,
+//   .arburst  (uart_arburst)  ,
+//   .rready   (uart_rready )  ,
+//   .rvalid   (uart_rvalid )  ,
+//   .rresp    (uart_rresp  )  ,
+//   .rdata    (uart_rdata  )  ,
+//   .rlast    (uart_rlast  )  ,
+//   .rid      (uart_rid    )  
+// );
 
 ysyx_23060221_Idu idu(
+  .rst(reset),
   .inst(inst),
   .aluctr(aluctr),
   .aluasrc(aluasrc),
@@ -503,6 +412,7 @@ ysyx_23060221_Idu idu(
 
 ysyx_23060221_Exu exu(
   .clk(clock),
+  .rst(reset),
   .src1(src1),
   .src2(src2),
   .pc(pc),
@@ -554,6 +464,7 @@ ysyx_23060221_Exu exu(
 );
 
 ysyx_23060221_Wbu wbu(
+  .rst(reset),
   .rs1(src1),
   .imm(imm),
   .PCAsrc(PCAsrc),

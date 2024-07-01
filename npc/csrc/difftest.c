@@ -5,6 +5,10 @@
 #include <memory.h>
 #include <top.h>
 
+static char *ref_so_file;
+static long img_size;
+static int port;
+
 void (*ref_difftest_memcpy)(uint32_t addr, void *buf, size_t n, int direction) = NULL;
 void (*ref_difftest_regcpy)(void *dut, int direction) = NULL;
 void (*ref_difftest_exec)(uint64_t n) = NULL;
@@ -14,8 +18,7 @@ enum {DIFFTEST_TO_DUT, DIFFTEST_TO_REF};
 bool difftest_checkregs(CPU_state *ref_r, uint32_t pc);
 void reg_display();
 
-void init_difftest(char *ref_so_file, long img_size, int port) {
-  assert(ref_so_file != NULL);
+void reset_difftest() {
   void *handle;
   handle = dlopen(ref_so_file, RTLD_LAZY);
   assert(handle);
@@ -32,17 +35,29 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
   ref_difftest_raise_intr = (void(*)(uint64_t))dlsym(handle, "difftest_raise_intr");
   assert(ref_difftest_raise_intr);
 
-  void (*ref_difftest_init)(int) = (void(*)(int))dlsym(handle, "difftest_init");
-  assert(ref_difftest_init);
-
-  ref_difftest_init(port);
   ref_difftest_memcpy(CONFIG_MBASE, guest_to_host(CONFIG_MBASE), img_size, DIFFTEST_TO_REF);
   CPU_state cpu;
   for (int i = 0; i < 32; i++) {
     cpu.gpr[i] = top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__rf[i];
   }
-  cpu.pc = top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__pc;
+  cpu.pc = 0x20000000;
   ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
+}
+
+void init_difftest(char *arg_ref_so_file, long arg_img_size, int arg_port) {
+  ref_so_file = arg_ref_so_file;
+  img_size = arg_img_size;
+  port = arg_port;
+  assert(ref_so_file != NULL);
+  void *handle;
+  handle = dlopen(ref_so_file, RTLD_LAZY);
+  assert(handle);
+
+  void (*ref_difftest_init)(int) = (void(*)(int))dlsym(handle, "difftest_init");
+  assert(ref_difftest_init);
+
+  ref_difftest_init(port);
+  reset_difftest();
 }
 
 static void checkregs(CPU_state *ref, uint32_t pc) {
