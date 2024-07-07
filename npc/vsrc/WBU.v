@@ -24,7 +24,7 @@ module PC_Gen(
         pc_out <= tmp1 + tmp2;
       end
     end
-    $display("pc: %08x", pc_out);
+    // $display("pc: %08x", pc_out);
   end
 endmodule
 

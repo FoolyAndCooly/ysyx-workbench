@@ -15,7 +15,7 @@ uint8_t* guest_to_host(uint32_t paddr) {return pmem + paddr - CONFIG_MBASE; }
 
 extern "C" void flash_read(int32_t addr, int32_t *data) { assert(0); }
 extern "C" void mrom_read(int32_t addr, int32_t *data) {
-  *data = *(uint32_t*)(guest_to_host(addr));
+  *data = *(uint32_t*)(guest_to_host(addr & ~0x3));
 }
 
 extern "C" int pmem_read(int addr, int len) {
