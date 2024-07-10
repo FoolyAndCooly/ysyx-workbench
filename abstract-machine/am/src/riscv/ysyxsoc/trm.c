@@ -30,7 +30,7 @@ void halt(int code) {
 }
 
 void _trm_init() {
-  memcpy(&_sdata, &_erodata + 1, &_edata - &_sdata);
+  memcpy(&_sdata, &_erodata + 1, &_edata - &_sdata + 1);
   int ret = main(mainargs);
   halt(ret);
 }

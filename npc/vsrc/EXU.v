@@ -188,9 +188,9 @@ always @(*) begin
         3'b001: data_out = {{16{reg_rdata[23]}}, reg_rdata[23:8]};
 	3'b010: data_out = {{16{reg_rdata[31]}}, reg_rdata[31:16]};
 	3'b011: data_out = {{16{reg_rdata[39]}}, reg_rdata[39:24]};
-        3'b100: data_out = {{16{reg_rdata[39]}}, reg_rdata[47:32]};
-        3'b101: data_out = {{16{reg_rdata[39]}}, reg_rdata[55:40]};
-        3'b110: data_out = {{16{reg_rdata[39]}}, reg_rdata[63:48]};
+        3'b100: data_out = {{16{reg_rdata[47]}}, reg_rdata[47:32]};
+        3'b101: data_out = {{16{reg_rdata[55]}}, reg_rdata[55:40]};
+        3'b110: data_out = {{16{reg_rdata[63]}}, reg_rdata[63:48]};
 	default: begin data_out = 0; end
       endcase
     end

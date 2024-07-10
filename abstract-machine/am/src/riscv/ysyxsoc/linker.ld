@@ -1,5 +1,5 @@
 ENTRY(_start)
-PHDRS { text PT_LOAD; data PT_LOAD; }
+PHDRS { text PT_LOAD; rodata PT_LOAD; data PT_LOAD; }
 
 MEMORY {
   mrom : ORIGIN = 0x20000000, LENGTH = 4K
@@ -19,7 +19,7 @@ SECTIONS {
     _srodata = .;
     *(.rodata*)
     _erodata = .;
-  } > mrom AT> mrom
+  } > mrom AT> mrom : rodata
   .data : {
     _sdata = .;
     *(.sdata*)
@@ -33,7 +33,7 @@ SECTIONS {
     *(.bss*)
     *(.sbss*)
     *(.scommon)
-  }
+  } > sram AT> mrom
   _stack_top = 0x0f001000;
   . = _stack_top + 0x0ff0;
   _stack_pointer = .;

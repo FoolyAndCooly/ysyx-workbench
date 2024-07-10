@@ -1,6 +1,7 @@
 #include <common.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <top.h>
 
 static int is_batch_mode = false;
 void cpu_exec(uint64_t n, int type);
@@ -45,6 +46,7 @@ static int cmd_cyc(char *args) {
 }
 
 static int cmd_si(char *args) {
+  printf("%08x\n", top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__pc);
   if (args != NULL) {
     cpu_exec(atoi(args), 1);
   } else {
