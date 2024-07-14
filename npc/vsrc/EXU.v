@@ -264,7 +264,7 @@ assign awvalid = reg_awvalid;
 assign awaddr  = reg_awaddr ;
 assign awid    = 'd0        ;    
 assign awlen   = 'd0        ;
-assign awsize  = 3'b010     ;
+assign awsize  = {1'b0, memop[1:0]} ;
 assign awburst = 2'b00      ;
 
 assign wvalid  = reg_wvalid ;
@@ -277,7 +277,7 @@ assign arvalid = reg_arvalid;
 assign araddr  = reg_araddr ;
 assign arid    = 'd0        ;
 assign arlen   = 'd0        ;
-assign arsize  = 3'b010     ;
+assign arsize  = {1'b0, memop[1:0]} ;
 assign arburst = 2'b00      ;
 
 assign rready  = reg_rready ;

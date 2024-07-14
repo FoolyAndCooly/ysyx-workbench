@@ -176,19 +176,11 @@ assign wlast   = (mst) ?  exu_wlast   :  ifu_wlast   ;
 assign bready  = (mst) ?  exu_bready  :  ifu_bready  ;
 assign arvalid = (mst) ?  exu_arvalid :  ifu_arvalid ;
 assign araddr  = (mst) ?  exu_araddr  :  ifu_araddr  ;
-// assign arid    = (mst) ?  exu_arid    :  ifu_arid    ;
-// assign arlen   = (mst) ?  exu_arlen   :  ifu_arlen   ;
-// assign arsize  = (mst) ?  exu_arsize  :  ifu_arsize  ;
+assign arid    = (mst) ?  exu_arid    :  ifu_arid    ;
+assign arlen   = (mst) ?  exu_arlen   :  ifu_arlen   ;
+assign arsize  = (mst) ?  exu_arsize  :  ifu_arsize  ;
 assign arburst = (mst) ?  exu_arburst :  ifu_arburst ;
 assign rready  = (mst) ?  exu_rready  :  ifu_rready  ;
-
-// assign arvalid = 0;
-// assign araddr  = 0;
-assign arid    = 0; 
-assign arlen   = 0; 
-assign arsize  = 0; 
-
-
 
 assign awready =  io_master_awready ; 
 assign wready  =  io_master_wready  ; 

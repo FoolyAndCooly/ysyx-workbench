@@ -63,8 +63,8 @@ void execute(uint64_t n, int type) {
       } while(!top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__WBU_valid);
     }
     else {do{cycle();} while(0);}
-    if (reset_flag) {reset_difftest();}
-    else if (type) trace_and_difftest(pre_pc);
+    // if (reset_flag) {reset_difftest();}
+    // else if (type) trace_and_difftest(pre_pc);
     if (npc_state.state != NPC_RUNNING) break;
   }
 }

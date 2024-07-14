@@ -4,6 +4,15 @@
 #include <string.h>
 #include <assert.h>
 
+#define UART_START 0x10000000
+#define LCR 3
+#define LSB 0
+#define MSB 1
+#define FCR 2
+#define IER 1
+#define DEBUG2 12
+#define FULL 16
+
 extern char _sdata;
 extern char _erodata;
 extern char _edata;
@@ -20,8 +29,10 @@ Area heap = RANGE(&_heap_start, &_stack_top);
 static const char mainargs[] = MAINARGS;
 
 void putch(char ch) {
-  uint32_t addr = 0x10000000;
-  asm volatile ("sb %0, 0(%1)":: "r" (ch), "r" (addr): "memory");
+  int count;
+  do {asm volatile ("lw %0, 0(%1)": "=r" (count) : "r" (UART_START + DEBUG2));}
+  while (count >= FULL);
+  asm volatile ("sb %0, 0(%1)":: "r" (ch), "r" (UART_START): "memory");
 }
 
 void halt(int code) {
@@ -29,8 +40,18 @@ void halt(int code) {
   while (1);
 }
 
+void uart_init(){
+  asm volatile("sb %0, 0(%1)":: "r"(0x83), "r"(UART_START + LCR): "memory");
+  asm volatile("sb %0, 0(%1)":: "r"(0x00), "r"(UART_START + MSB): "memory");
+  asm volatile("sb %0, 0(%1)":: "r"(0x01), "r"(UART_START + LSB): "memory");
+  asm volatile("sb %0, 0(%1)":: "r"(0x03), "r"(UART_START + LCR): "memory");
+  asm volatile("sb %0, 0(%1)":: "r"(0xc0), "r"(UART_START + FCR): "memory");
+  asm volatile("sb %0, 0(%1)":: "r"(0x0f), "r"(UART_START + IER): "memory");
+}
+
 void _trm_init() {
   memcpy(&_sdata, &_erodata + 1, &_edata - &_sdata + 1);
+  uart_init();
   int ret = main(mainargs);
   halt(ret);
 }

@@ -2,7 +2,8 @@
 #define __MEMORY_H__
 
 #include <common.h>
-#define CONFIG_MBASE 0x20000000
+#define CONFIG_MBASE     0x20000000
+#define CONFIG_FLASHBASE 0x30000000
 
 uint8_t* guest_to_host(uint32_t paddr);
 
