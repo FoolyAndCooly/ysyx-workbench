@@ -18,7 +18,7 @@ module PC_Gen(
   MuxKey #(2, 1, 32) p2 (tmp2, PCBsrc, {1'b0, pc_in,   1'b1, rs1});
   always @(posedge clk) begin
     if (rst)
-      pc_out <= 32'h20000000;
+      pc_out <= 32'h30000000;
     else begin
       if (syn) begin 
         pc_out <= tmp1 + tmp2;

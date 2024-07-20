@@ -41,7 +41,8 @@ static long load_img() {
   Log("The image is %s, size = %ld", img_file, size);
 
   fseek(fp, 0, SEEK_SET);
-  int ret = fread(guest_to_host(CONFIG_MBASE), size, 1, fp);
+  // int ret = fread(guest_to_host(CONFIG_MBASE), size, 1, fp);
+  int ret = fread(flash_guest_to_host(0), size, 1, fp);
   assert(ret == 1);
 
   fclose(fp);

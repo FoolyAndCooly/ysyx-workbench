@@ -58,7 +58,7 @@ void execute(uint64_t n, int type) {
     if (type) {
       reset_flag = 0;
       do{
-	if (top->rootp->ysyxSoCFull__DOT__asic__DOT____Vcellinp__cpu__reset) reset_flag = 1;
+	// if (top->rootp->ysyxSoCFull__DOT__asic__DOT____Vcellinp__cpu__reset) reset_flag = 1;
         cycle();
       } while(!top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__WBU_valid);
     }

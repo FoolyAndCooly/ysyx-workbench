@@ -4,7 +4,9 @@
 #include <string.h>
 #include <assert.h>
 
-#define UART_START 0x10000000
+#define PSRAM_START 0x80000000
+#define FLASH_START 0x30000000
+#define UART_START  0x10000000
 #define LCR 3
 #define LSB 0
 #define MSB 1
@@ -49,9 +51,19 @@ void uart_init(){
   asm volatile("sb %0, 0(%1)":: "r"(0x0f), "r"(UART_START + IER): "memory");
 }
 
+void bootloader(){
+  uint32_t inst;
+  uint32_t len = &_erodata - FLASH_START + 1;
+  for (int i = 0; i <= len; i += 4) {
+    asm volatile ("lw %0, 0(%1)": "=r" (inst) : "r" (FLASH_START + i));
+    asm volatile ("sw %0, 0(%1)":: "r" (inst) , "r" (PSRAM_START + i): "memory");
+  }
+}
+
 void _trm_init() {
-  memcpy(&_sdata, &_erodata + 1, &_edata - &_sdata + 1);
+  memcpy(&_sdata, &_erodata + 1, &_edata - &_sdata);
   uart_init();
+  // bootloader();
   int ret = main(mainargs);
   halt(ret);
 }
