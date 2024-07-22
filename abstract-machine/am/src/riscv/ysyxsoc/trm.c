@@ -15,20 +15,30 @@
 #define DEBUG2 12
 #define FULL 16
 
-extern char _sdata;
-extern char _erodata;
-extern char _edata;
+extern char _stext2_virt;
+extern char _etext2_virt;
+extern char _stext2_phys;
+extern char _srodata_virt;
+extern char _erodata_virt;
+extern char _srodata_phys;
+extern char _sdata_virt;
+extern char _edata_virt;
+extern char _sdata_phys;
+
 extern char _heap_start;
 extern char _stack_top;
-int main(const char *args);
-
 extern char _pmem_start;
+
+int main(const char *args);
+void _trm_init(void) __attribute__((section("._trm_init")));
+void *bootload(void *out, const void *in, size_t n) __attribute__((section(".bootload")));
 
 Area heap = RANGE(&_heap_start, &_stack_top);
 #ifndef MAINARGS
 #define MAINARGS ""
 #endif
 static const char mainargs[] = MAINARGS;
+
 
 void putch(char ch) {
   int count;
@@ -51,19 +61,24 @@ void uart_init(){
   asm volatile("sb %0, 0(%1)":: "r"(0x0f), "r"(UART_START + IER): "memory");
 }
 
-void bootloader(){
-  uint32_t inst;
-  uint32_t len = &_erodata - FLASH_START + 1;
-  for (int i = 0; i <= len; i += 4) {
-    asm volatile ("lw %0, 0(%1)": "=r" (inst) : "r" (FLASH_START + i));
-    asm volatile ("sw %0, 0(%1)":: "r" (inst) , "r" (PSRAM_START + i): "memory");
+void *bootload(void *out, const void *in, size_t n) {
+  void* ret = out;
+  char* p1 = (char*)out;
+  char* p2 = (char*)in;
+  for (int i = 0; i < n; i++) {
+    *p1 = *p2;
+    p1++;
+    p2++;
   }
+  return ret;
 }
 
 void _trm_init() {
-  memcpy(&_sdata, &_erodata + 1, &_edata - &_sdata);
+  // memcpy(&_sdata, &_erodata + 1, &_edata - &_sdata);
+  bootload(&_stext2_virt, &_stext2_phys, &_etext2_virt - &_stext2_virt);
+  bootload(&_srodata_virt, &_srodata_phys, &_erodata_virt - &_srodata_virt);
+  bootload(&_sdata_virt, &_sdata_phys, &_edata_virt - &_sdata_virt);
   uart_init();
-  // bootloader();
   int ret = main(mainargs);
   halt(ret);
 }
