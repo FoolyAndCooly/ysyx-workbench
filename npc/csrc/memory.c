@@ -3,6 +3,24 @@
 
 #define MSIZE 0x10000000
 
+#define BLOCK_SIZE 4
+#define DATA_SIZE BLOCK_SIZE>>2
+
+static long long hit_cnt;
+static long long miss_cnt;
+
+extern "C" void hit_count(){hit_cnt++;}
+extern "C" void miss_count(){miss_cnt++;}
+void cache_display(){printf("hit probability: %f, miss probability: %f\n", (double)hit_cnt/(hit_cnt + miss_cnt), (double)miss_cnt/(hit_cnt + miss_cnt));}
+
+struct block{
+  uint32_t data[DATA_SIZE];
+  int valid;
+  uint32_t tag;
+};
+
+static block cache[0x100] = {};
+
 static uint8_t pmem[MSIZE] = {
   0x93, 0x01, 0x60, 0x00, // addi
   0x93, 0x01, 0x60, 0x00,
@@ -18,6 +36,8 @@ static uint8_t flash_mem[MSIZE] = {
 };
 
 static uint8_t sram_mem[MSIZE] = {};
+
+static uint16_t sdram[4][8192][512][4];
 
 uint64_t get_time();
 uint8_t* guest_to_host(uint32_t paddr) {return pmem + paddr - CONFIG_MBASE; }
@@ -39,12 +59,46 @@ extern "C" void sram_write(int32_t addr, int32_t data, int32_t len) {
   // printf("write %08x: %08x %d\n", addr, data, len);
 }
 
+extern "C" void sdram_read(char ba, short row, short col, short* data, short id) {
+  *data = sdram[ba][row][col][id];
+  // printf("read: ba: %d, row: %d, col: %d, data: %x\n", ba, row, col, *data);
+}
+
+extern "C" void sdram_write(char ba, short row, short col, short data, short dqm, short id) {
+  uint16_t mask = (!(dqm & 0x1) ? 0x00ff : 0x0) | (!(dqm & 0x2) ? 0xff00 : 0x0);
+  sdram[ba][row][col][id] = (data & mask) | (sdram[ba][row][col][id] & ~mask);
+ 
+  // printf("write: ba: %d, row: %d, col: %d, data: %x\n", ba, row, col, sdram[ba][row][col]);
+}
+
 extern "C" void flash_read(int32_t addr, int32_t *data) {
   *data = *(uint32_t*)(flash_guest_to_host(addr & ~0x3));
   // printf("read %08x: %08x\n", addr, *data);
 }
 extern "C" void mrom_read(int32_t addr, int32_t *data) {
   *data = *(uint32_t*)(guest_to_host(addr & ~0x3));
+}
+
+extern "C" unsigned char cache_check(uint32_t index, uint32_t tag) {
+  unsigned char ret = 0;
+  if (cache[index].tag == tag && cache[index].valid) {
+    ret = 1;
+    hit_cnt++;
+  } else {
+    ret = 0;
+    miss_cnt++;
+  }
+  return ret;
+}
+
+extern "C" void cache_read(uint32_t index, uint32_t offset, uint32_t* rdata) {
+  *rdata = cache[index].data[offset >> 2];
+}
+
+extern "C" void cache_write(uint32_t index, uint32_t data, uint32_t tag, uint32_t count) {
+  cache[index].data[count] = data;
+  cache[index].valid = 1;
+  cache[index].tag = tag;
 }
 
 extern "C" int pmem_read(int addr, int len) {

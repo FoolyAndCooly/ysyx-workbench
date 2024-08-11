@@ -46,7 +46,7 @@ static int cmd_cyc(char *args) {
 }
 
 static int cmd_si(char *args) {
-  printf("%08x\n", top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__pc);
+  printf("%08x\n", top->rootp->ysyxSoCTop__DOT__dut__DOT__asic__DOT__cpu__DOT__cpu__DOT__pc);
   if (args != NULL) {
     cpu_exec(atoi(args), 1);
   } else {

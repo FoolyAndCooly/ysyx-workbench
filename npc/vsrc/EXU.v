@@ -1,6 +1,9 @@
 import "DPI-C" function int pmem_read(input int raddr, input int len);
 import "DPI-C" function void pmem_write(
   input int waddr, input byte len, input int wdata);
+import "DPI-C" function void exu_count();
+import "DPI-C" function void lsu_begin();
+import "DPI-C" function void lsu_end();
 
 module Alu(
   input [31:0] a,
@@ -88,8 +91,8 @@ module ysyx_23060221_Exu(
   output [1:0]  awburst  ,
   input         wready   ,
   output        wvalid   ,
-  output [63:0] wdata    ,
-  output [7:0]  wstrb    ,
+  output [31:0] wdata    ,
+  output [3:0]  wstrb    ,
   output        wlast    ,
   output        bready   ,
   input         bvalid   ,
@@ -105,7 +108,7 @@ module ysyx_23060221_Exu(
   output        rready   ,
   input         rvalid   ,
   input [1:0]   rresp    ,
-  input [63:0]  rdata    ,
+  input [31:0]  rdata    ,
   input         rlast    ,
   input [3:0]   rid      ,
   output [31:0] res
@@ -131,9 +134,7 @@ end
 
 wire [31:0] a;
 wire [31:0] b;
-always @(posedge clk) begin
-  // $display("aluasrc %d, alubsrc %d, pc %08x, imm %08x", aluasrc, alubsrc, pc, imm);
-end
+
 MuxKey #(2, 1, 32)  i1 (a, aluasrc, {
   1'b0, src1,
   1'b1, pc
@@ -155,14 +156,23 @@ BranchCond bc(
 .PCAsrc(PCAsrc),
 .PCBsrc(PCBsrc));
 
+reg [63:0] lsu_cnt, exu_cnt;
+
 always @(posedge clk) begin
   if (rst) 
     EXU_valid <= 0;
   else begin
-    if (syn_IDU_EXU & (memop == 3'b111))
-      EXU_valid <= 1;
+    if (syn_IDU_EXU) begin
+      if (memop == 3'b111) begin
+        EXU_valid <= 1;
+        exu_count();
+      end else begin
+        lsu_begin();
+      end
+    end
     else if (memfinish) begin
       EXU_valid <= 1;
+      lsu_end();
     end
   end
 end
@@ -171,60 +181,40 @@ reg [31:0] data_out;
 always @(*) begin 
   case (memop)
     3'b000: begin 
-      case (araddr[2:0])
-        3'b000: data_out = {{24{reg_rdata[7]}},  reg_rdata[7:0]};
-        3'b001: data_out = {{24{reg_rdata[15]}}, reg_rdata[15:8]};
-	3'b010: data_out = {{24{reg_rdata[23]}}, reg_rdata[23:16]};
-	3'b011: data_out = {{24{reg_rdata[31]}}, reg_rdata[31:24]};
-        3'b100: data_out = {{24{reg_rdata[39]}}, reg_rdata[39:32]};
-        3'b101: data_out = {{24{reg_rdata[47]}}, reg_rdata[47:40]};
-        3'b110: data_out = {{24{reg_rdata[55]}}, reg_rdata[55:48]};
-        3'b111: data_out = {{24{reg_rdata[63]}}, reg_rdata[63:56]};
+      case (araddr[1:0])
+        2'b00: data_out = {{24{reg_rdata[7]}},  reg_rdata[7:0]};
+        2'b01: data_out = {{24{reg_rdata[15]}}, reg_rdata[15:8]};
+	2'b10: data_out = {{24{reg_rdata[23]}}, reg_rdata[23:16]};
+	2'b11: data_out = {{24{reg_rdata[31]}}, reg_rdata[31:24]};
       endcase
     end
     3'b001: begin
-      case (araddr[2:0])
-        3'b000: data_out = {{16{reg_rdata[15]}}, reg_rdata[15:0]};
-        3'b001: data_out = {{16{reg_rdata[23]}}, reg_rdata[23:8]};
-	3'b010: data_out = {{16{reg_rdata[31]}}, reg_rdata[31:16]};
-	3'b011: data_out = {{16{reg_rdata[39]}}, reg_rdata[39:24]};
-        3'b100: data_out = {{16{reg_rdata[47]}}, reg_rdata[47:32]};
-        3'b101: data_out = {{16{reg_rdata[55]}}, reg_rdata[55:40]};
-        3'b110: data_out = {{16{reg_rdata[63]}}, reg_rdata[63:48]};
+      case (araddr[1:0])
+        2'b00: data_out = {{16{reg_rdata[15]}}, reg_rdata[15:0]};
+        2'b01: data_out = {{16{reg_rdata[23]}}, reg_rdata[23:8]};
+	2'b10: data_out = {{16{reg_rdata[31]}}, reg_rdata[31:16]};
 	default: begin data_out = 0; end
       endcase
     end
     3'b010: begin
-      case (araddr[2:0])
-        3'b000: data_out = reg_rdata[31:0];
-	3'b001: data_out = reg_rdata[39:8];
-	3'b010: data_out = reg_rdata[47:16];
-	3'b011: data_out = reg_rdata[55:24];
-	3'b100: data_out = reg_rdata[63:32];
+      case (araddr[1:0])
+        2'b00: data_out = reg_rdata[31:0];
 	default: begin data_out = 0; end
       endcase
     end
     3'b100: begin
-      case (araddr[2:0])
-        3'b000: data_out = {24'b0, reg_rdata[7:0]};
-        3'b001: data_out = {24'b0, reg_rdata[15:8]};
-	3'b010: data_out = {24'b0, reg_rdata[23:16]};
-	3'b011: data_out = {24'b0, reg_rdata[31:24]};
-        3'b100: data_out = {24'b0, reg_rdata[39:32]};
-        3'b101: data_out = {24'b0, reg_rdata[47:40]};
-        3'b110: data_out = {24'b0, reg_rdata[55:48]};
-        3'b111: data_out = {24'b0, reg_rdata[63:56]};
+      case (araddr[1:0])
+        2'b00: data_out = {24'b0, reg_rdata[7:0]};
+        2'b01: data_out = {24'b0, reg_rdata[15:8]};
+	2'b10: data_out = {24'b0, reg_rdata[23:16]};
+	2'b11: data_out = {24'b0, reg_rdata[31:24]};
       endcase
     end
     3'b101: begin
-       case (araddr[2:0])
-        3'b000: data_out = {16'b0, reg_rdata[15:0]};
-        3'b001: data_out = {16'b0, reg_rdata[23:8]};
-	3'b010: data_out = {16'b0, reg_rdata[31:16]};
-	3'b011: data_out = {16'b0, reg_rdata[39:24]};
-        3'b100: data_out = {16'b0, reg_rdata[47:32]};
-        3'b101: data_out = {16'b0, reg_rdata[55:40]};
-        3'b110: data_out = {16'b0, reg_rdata[63:48]};
+       case (araddr[1:0])
+        2'b00: data_out = {16'b0, reg_rdata[15:0]};
+        2'b01: data_out = {16'b0, reg_rdata[23:8]};
+	2'b10: data_out = {16'b0, reg_rdata[31:16]};
         default: begin data_out = 0; end
       endcase     
     end
@@ -243,18 +233,18 @@ MuxKey #(2, 1, 32)  mr (wd, memtoreg, {
 reg        reg_awvalid;
 reg [31:0] reg_awaddr ;
 reg        reg_wvalid ;
-reg [63:0] reg_wdata  ;
+reg [31:0] reg_wdata  ;
 reg        reg_arvalid;
 reg [31:0] reg_araddr ;
 reg        reg_rready ;
-reg [63:0] reg_rdata  ;
+reg [31:0] reg_rdata  ;
 reg        reg_bready ;
-reg [7:0]  reg_wstrb  ;
+reg [3:0]  reg_wstrb  ;
 
 /*************wire***************/
 wire wstart;
 wire rstart;
-wire [7:0] wstrb0;
+wire [3:0] wstrb0;
 
 /*************assign**************/
 assign wstart = syn_IDU_EXU & memwr & (memop != 3'b111);
@@ -270,7 +260,7 @@ assign awburst = 2'b00      ;
 assign wvalid  = reg_wvalid ;
 assign wdata   = reg_wdata  ;
 assign wstrb    = reg_wstrb ;
-assign wstrb0   = (memop == 3'b000) ? 8'b00000001 : ((memop == 3'b001) ? 8'b00000011 : 8'b00001111);
+assign wstrb0   = (memop == 3'b000) ? 4'b0001 : ((memop == 3'b001) ? 4'b0011 : 4'b1111);
 assign wlast   = wvalid & wready;
 
 assign arvalid = reg_arvalid;
@@ -286,19 +276,20 @@ assign bready  = 'd1         ;
 
 /*************process**************/
 
-reg [5:0] shift;
+reg [4:0] shift;
 
 always @(*) begin
-  shift = {3'b0,awaddr[2:0]} << 3;
-  reg_wdata = {32'b0,src2} << shift;
+  shift = {3'b0,awaddr[1:0]} << 3;
+  reg_wdata = src2 << shift; // ?
 end
 
 always @(*) begin
-  reg_wstrb = wstrb0 << (awaddr[2:0]);
+  reg_wstrb = wstrb0 << (awaddr[1:0]);
 end
 
 always @(posedge clk) begin
-  if (awvalid & awready)
+  if (rst) reg_awvalid <= 'd0;
+  else if (awvalid & awready)
     reg_awvalid <= 'd0;
   else if(wstart)
     reg_awvalid <= 'd1;
@@ -333,7 +324,8 @@ end
 // end
 
 always @(posedge clk) begin
-  if (arvalid & arready)
+  if (rst) reg_arvalid <= 'd0;
+  else if (arvalid & arready)
     reg_arvalid <= 'd0;
   else if (rstart) begin
     reg_arvalid <= 'd1;

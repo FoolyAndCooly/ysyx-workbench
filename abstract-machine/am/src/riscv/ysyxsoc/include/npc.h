@@ -2,6 +2,8 @@
 
 #define SERIAL_PORT     (DEVICE_BASE + 0x000003f8)
 #define RTC_ADDR        (DEVICE_BASE + 0x0000048)
+#define UART_RX_ADDR    0x10000000
+#define KEYBOARD_ADDR   0x10011000
 
 #include <stdint.h>
 

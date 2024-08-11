@@ -1,8 +1,9 @@
-TOPNAME = ysyxSoCFull
+TOPNAME = ysyxSoCTop
 
+NXDC_FILES = constr/$(TOPNAME).nxdc
 WORK_DIR = $(shell pwd)
 IMG = $(WORK_DIR)/code/char-test.bin
-INC_PATH = $(WORK_DIR)/include
+INC_PATH += $(WORK_DIR)/include
 INV_PATH += $(abspath $(WORK_DIR)/../ysyxSoC/perip/uart16550/rtl)
 INV_PATH += $(abspath $(WORK_DIR)/../ysyxSoC/perip/spi/rtl)
 LIB_SO = $(NEMU_HOME)/build/riscv32-nemu-interpreter-so
@@ -15,6 +16,11 @@ BUILD_DIR = $(WORK_DIR)/build
 OBJ_DIR = $(BUILD_DIR)/obj_dir
 BIN = $(BUILD_DIR)/$(TOPNAME)
 
+SRC_AUTO_BIND = $(abspath $(BUILD_DIR)/auto_bind.cpp)
+
+$(SRC_AUTO_BIND): $(NXDC_FILES)
+	python3 $(NVBOARD_HOME)/scripts/auto_pin_bind.py $^ $@
+
 default: $(BIN)
 
 $(shell mkdir -p $(BUILD_DIR))
@@ -24,17 +30,20 @@ $(shell mkdir -p $(BUILD_DIR))
 VSRCS += $(shell find $(abspath ./vsrc) -name "*.v")
 VSRCS += $(shell find $(abspath ../ysyxSoC/perip) -name "*.v")
 VSRCS += $(shell find $(abspath ../ysyxSoC/build) -name "*.v")
-CSRCS = $(shell find $(abspath ./csrc) -name "*.c" -or -name "*.cc" -or -name "*.cpp")
-OSRCS = $(shell find $(abspath ./build/obj_dir) -name "*.o")
+CSRCS += $(shell find $(abspath ./csrc) -name "*.c" -or -name "*.cc" -or -name "*.cpp")
+OSRCS += $(shell find $(abspath ./build/obj_dir) -name "*.o")
 CSRCS += $(SRC_AUTO_BIND)
 
-# rules for verilator
-INCFLAGS = $(addprefix -I, $(INC_PATH))
-INVFLAGS = $(addprefix -I, $(INV_PATH))
-CXXFLAGS +=  $(INCFLAGS) -DTOP_NAME="\"V$(TOPNAME)\""
-LDFLAGS = -lreadline
+# rules for NVBoard
+include $(NVBOARD_HOME)/scripts/nvboard.mk
 
-$(BIN): $(VSRCS) $(CSRCS)
+# rules for verilator
+INCFLAGS += $(addprefix -I, $(INC_PATH))
+INVFLAGS += $(addprefix -I, $(INV_PATH))
+CXXFLAGS +=  $(INCFLAGS) -DTOP_NAME="\"V$(TOPNAME)\""
+LDFLAGS += -lreadline
+
+$(BIN): $(VSRCS) $(CSRCS) $(NVBOARD_ARCHIVE)
 	@rm -rf $(OBJ_DIR)
 	@$(VERILATOR) $(VERILATOR_CFLAGS) \
 		--top-module $(TOPNAME) $^ \
@@ -42,6 +51,7 @@ $(BIN): $(VSRCS) $(CSRCS)
 		$(INVFLAGS) \
 		--Mdir $(OBJ_DIR) --exe -o $(abspath $(BIN)) \
 		--timescale "1ns/1ns" --no-timing --trace
+
 all: default
 
 run: $(BIN)

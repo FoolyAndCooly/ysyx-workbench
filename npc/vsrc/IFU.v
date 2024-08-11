@@ -1,7 +1,9 @@
+import "DPI-C" function void ifu_count();
+
 module ysyx_23060221_Ifu(
   input             clk  ,
   input             rst  ,
-  input [31:0]       pc  ,
+  input  [31:0]       pc ,
   output [31:0]      inst,
   input  reg    WBU_valid,
   input  reg    IDU_ready,
@@ -16,8 +18,8 @@ module ysyx_23060221_Ifu(
   output [1:0]  awburst  ,
   input         wready   ,
   output        wvalid   ,
-  output [63:0] wdata    ,
-  output [7:0]  wstrb    ,
+  output [31:0] wdata    ,
+  output [3:0]  wstrb    ,
   output        wlast    ,
   output        bready   ,
   input         bvalid   ,
@@ -33,7 +35,7 @@ module ysyx_23060221_Ifu(
   output        rready   ,
   input         rvalid   ,
   input [1:0]   rresp    ,
-  input [63:0]  rdata    ,
+  input [31:0]  rdata    ,
   input         rlast    ,
   input [3:0]   rid      
   );
@@ -66,8 +68,10 @@ end
 always @(posedge clk) begin
   if (rst)
     IFU_valid <= 0;
-  else if (memfinish) 
+  else if (memfinish) begin
     IFU_valid <= 1;
+    ifu_count();
+  end
 end
 
 assign memfinish = (bvalid & bready) | (rvalid & rready);
@@ -78,11 +82,11 @@ assign memfinish = (bvalid & bready) | (rvalid & rready);
 reg        reg_awvalid;
 reg [31:0] reg_awaddr ;
 reg        reg_wvalid ;
-reg [63:0] reg_wdata  ;
+reg [31:0] reg_wdata  ;
 reg        reg_arvalid;
 reg [31:0] reg_araddr ;
 reg        reg_rready ;
-reg [63:0] reg_rdata  ;
+reg [31:0] reg_rdata  ;
 reg        reg_bready ;
 
 /*************wire***************/
@@ -103,7 +107,7 @@ assign awburst = 2'b00      ;
 
 assign wvalid  = reg_wvalid ;
 assign wdata   = reg_wdata  ;
-assign wstrb   = 8'b00000000;
+assign wstrb   = 4'b0000    ;
 assign wlast   = wvalid & wready;
 
 assign arvalid = reg_arvalid;
@@ -120,7 +124,8 @@ assign bready  = 'd1        ;
 /*************process**************/
 
 always @(posedge clk) begin
-  if (awvalid & awready) begin 
+  if (rst) reg_arvalid <= 'd0;
+  else if (awvalid & awready) begin 
     reg_awvalid <= 'd0;
   end
   else if(wstart)
@@ -155,7 +160,8 @@ end
 // end
 
 always @(posedge clk) begin
-  if (arvalid & arready) begin
+  if (rst) reg_arvalid <= 'd0;
+  else if (arvalid & arready) begin
     reg_arvalid <= 'd0;
   end
   else if (rstart)

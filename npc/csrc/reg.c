@@ -11,14 +11,14 @@ const char *regs[] = {
 
 void reg_display() {
   for (int i = 0; i < 32; i++) {
-    printf("%-8s0x%08x\n", regs[i], top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__rf[i]);
+    printf("%-8s0x%08x\n", regs[i], top->rootp->ysyxSoCTop__DOT__dut__DOT__asic__DOT__cpu__DOT__cpu__DOT__rf[i]);
   }
 }
 
 bool difftest_checkregs(CPU_state *ref_r, uint32_t pc) {
   for (int i = 0; i < 32; i++) {
-    if (top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__rf[i] != ref_r->gpr[i]) {
-      printf("%d th reg is wrong\nref reg :0x%08x\ncpu reg :0x%08x\n",i,ref_r->gpr[i],top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__rf[i]);
+    if (top->rootp->ysyxSoCTop__DOT__dut__DOT__asic__DOT__cpu__DOT__cpu__DOT__rf[i] != ref_r->gpr[i]) {
+      printf("%d th reg is wrong\nref reg :0x%08x\ncpu reg :0x%08x\n",i,ref_r->gpr[i],top->rootp->ysyxSoCTop__DOT__dut__DOT__asic__DOT__cpu__DOT__cpu__DOT__rf[i]);
       // printf("pc: 0x%08x\n", pc);
       return false;
     }
@@ -34,7 +34,7 @@ bool difftest_checkregs(CPU_state *ref_r, uint32_t pc) {
 uint32_t reg_str2val(const char *s, bool *success) {
   for (int i = 0; i < 32; i++) {
     if (strcmp(regs[i], s) == 0) {
-      return top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__rf[i];
+      return top->rootp->ysyxSoCTop__DOT__dut__DOT__asic__DOT__cpu__DOT__cpu__DOT__rf[i];
     }
   }
   return 0;

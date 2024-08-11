@@ -9,8 +9,8 @@ module ysyx_23060221_Arbiter(
   input [1:0]   ifu_awburst,
   output        ifu_wready ,
   input         ifu_wvalid ,
-  input [63:0]  ifu_wdata  ,
-  input [7:0]   ifu_wstrb  ,
+  input [31:0]  ifu_wdata  ,
+  input [3:0]   ifu_wstrb  ,
   input         ifu_wlast  ,
   input         ifu_bready ,
   output        ifu_bvalid ,
@@ -26,7 +26,7 @@ module ysyx_23060221_Arbiter(
   input         ifu_rready ,
   output        ifu_rvalid ,
   output [1:0]  ifu_rresp  ,
-  output [63:0] ifu_rdata  ,
+  output [31:0] ifu_rdata  ,
   output        ifu_rlast  ,
   output [3:0]  ifu_rid    ,
   output        exu_awready,
@@ -38,8 +38,8 @@ module ysyx_23060221_Arbiter(
   input [1:0]   exu_awburst,
   output        exu_wready ,
   input         exu_wvalid ,
-  input [63:0]  exu_wdata  ,
-  input [7:0]   exu_wstrb  ,
+  input [31:0]  exu_wdata  ,
+  input [3:0]   exu_wstrb  ,
   input         exu_wlast  ,
   input         exu_bready ,
   output        exu_bvalid ,
@@ -55,7 +55,7 @@ module ysyx_23060221_Arbiter(
   input         exu_rready ,
   output        exu_rvalid ,
   output [1:0]  exu_rresp  ,
-  output [63:0] exu_rdata  ,
+  output [31:0] exu_rdata  ,
   output        exu_rlast  ,
   output [3:0]  exu_rid    ,
   input         io_master_awready,
@@ -67,8 +67,8 @@ module ysyx_23060221_Arbiter(
   output [1:0]  io_master_awburst,
   input         io_master_wready ,
   output        io_master_wvalid ,
-  output [63:0] io_master_wdata  ,
-  output [7:0]  io_master_wstrb  ,
+  output [31:0] io_master_wdata  ,
+  output [3:0]  io_master_wstrb  ,
   output        io_master_wlast  ,
   output        io_master_bready ,
   input         io_master_bvalid ,
@@ -84,7 +84,7 @@ module ysyx_23060221_Arbiter(
   output        io_master_rready ,
   input         io_master_rvalid ,
   input [1:0]   io_master_rresp  ,
-  input [63:0]  io_master_rdata  ,
+  input [31:0]  io_master_rdata  ,
   input         io_master_rlast  ,
   input [3:0]   io_master_rid
 );
@@ -120,8 +120,8 @@ wire [7:0]  awlen  ;
 wire [2:0]  awsize ;
 wire [1:0]  awburst;
 wire        wvalid ;
-wire [63:0] wdata  ;
-wire [7:0]  wstrb  ;
+wire [31:0] wdata  ;
+wire [3:0]  wstrb  ;
 wire        wlast  ;
 wire        bready ;
 wire        arvalid;
@@ -140,7 +140,7 @@ wire [3:0]  bid    ;
 wire        arready;
 wire        rvalid ;
 wire [1:0]  rresp  ;
-wire [63:0] rdata  ;
+wire [31:0] rdata  ;
 wire        rlast  ;
 wire [3:0]  rid    ;
 

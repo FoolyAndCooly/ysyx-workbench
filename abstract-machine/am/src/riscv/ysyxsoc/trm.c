@@ -15,9 +15,12 @@
 #define DEBUG2 12
 #define FULL 16
 
-extern char _stext2_virt;
-extern char _etext2_virt;
-extern char _stext2_phys;
+extern char _sssbl_virt;
+extern char _essbl_virt;
+extern char _sssbl_phys;
+extern char _stext_virt;
+extern char _etext_virt;
+extern char _stext_phys;
 extern char _srodata_virt;
 extern char _erodata_virt;
 extern char _srodata_phys;
@@ -31,7 +34,10 @@ extern char _pmem_start;
 
 int main(const char *args);
 void _trm_init(void) __attribute__((section("._trm_init")));
-void *bootload(void *out, const void *in, size_t n) __attribute__((section(".bootload")));
+void bootload(void *out, const void *in, size_t n) __attribute__((section(".bootload")));
+void _fsbl(void) __attribute__((section(".fsbl")));
+void _ssbl(void) __attribute__((section(".ssbl")));
+
 
 Area heap = RANGE(&_heap_start, &_stack_top);
 #ifndef MAINARGS
@@ -61,8 +67,7 @@ void uart_init(){
   asm volatile("sb %0, 0(%1)":: "r"(0x0f), "r"(UART_START + IER): "memory");
 }
 
-void *bootload(void *out, const void *in, size_t n) {
-  void* ret = out;
+void bootload(void *out, const void *in, size_t n) {
   char* p1 = (char*)out;
   char* p2 = (char*)in;
   for (int i = 0; i < n; i++) {
@@ -70,14 +75,22 @@ void *bootload(void *out, const void *in, size_t n) {
     p1++;
     p2++;
   }
-  return ret;
+}
+
+void _fsbl() {
+  bootload(&_sssbl_virt, &_sssbl_phys, &_essbl_virt - &_sssbl_virt);
+  _ssbl();
+}
+
+void _ssbl() {
+  bootload(&_stext_virt, &_stext_phys, &_etext_virt - &_stext_virt);
+  bootload(&_srodata_virt, &_srodata_phys, &_erodata_virt - &_srodata_virt);
+  bootload(&_sdata_virt, &_sdata_phys, &_edata_virt - &_sdata_virt);
+  _trm_init();
 }
 
 void _trm_init() {
   // memcpy(&_sdata, &_erodata + 1, &_edata - &_sdata);
-  bootload(&_stext2_virt, &_stext2_phys, &_etext2_virt - &_stext2_virt);
-  bootload(&_srodata_virt, &_srodata_phys, &_erodata_virt - &_srodata_virt);
-  bootload(&_sdata_virt, &_sdata_phys, &_edata_virt - &_sdata_virt);
   uart_init();
   int ret = main(mainargs);
   halt(ret);

@@ -11,8 +11,8 @@ module ysyx_23060221(
   output	[1:0]	io_master_awburst  ,
   input		io_master_wready	   ,
   output		io_master_wvalid   ,
-  output	[63:0]	io_master_wdata	   ,
-  output	[7:0]	io_master_wstrb	   ,
+  output	[31:0]	io_master_wdata	   ,
+  output	[3:0]	io_master_wstrb	   ,
   output		io_master_wlast	   ,
   output		io_master_bready   ,
   input		io_master_bvalid	   ,
@@ -28,7 +28,7 @@ module ysyx_23060221(
   output		io_master_rready   ,
   input		io_master_rvalid	   ,
   input	[1:0]	io_master_rresp	           ,
-  input	[63:0]	io_master_rdata	           ,
+  input	[31:0]	io_master_rdata	           ,
   input		io_master_rlast	           ,
   input	[3:0]	io_master_rid	           ,
   output		io_slave_awready   ,
@@ -40,8 +40,8 @@ module ysyx_23060221(
   input	[1:0]	io_slave_awburst           ,
   output		io_slave_wready    ,
   input		io_slave_wvalid            ,
-  input	[63:0]	io_slave_wdata             ,
-  input	[7:0]	io_slave_wstrb             ,
+  input	[31:0]	io_slave_wdata             ,
+  input	[3:0]	io_slave_wstrb             ,
   input		io_slave_wlast             ,
   input		io_slave_bready            ,
   output		io_slave_bvalid    ,
@@ -57,7 +57,7 @@ module ysyx_23060221(
   input		io_slave_rready            ,
   output		io_slave_rvalid    ,
   output	[1:0]	io_slave_rresp     ,
-  output	[63:0]	io_slave_rdata     ,
+  output	[31:0]	io_slave_rdata     ,
   output		io_slave_rlast     ,  
   output	[3:0]	io_slave_rid    
 );
@@ -107,8 +107,8 @@ wire [2:0]  ifu_awsize  ;
 wire [1:0]  ifu_awburst ;
 wire        ifu_wready  ;
 wire        ifu_wvalid  ;
-wire [63:0] ifu_wdata   ;
-wire [7:0]  ifu_wstrb   ;
+wire [31:0] ifu_wdata   ;
+wire [3:0]  ifu_wstrb   ;
 wire        ifu_wlast   ;
 wire        ifu_bready  ;
 wire        ifu_bvalid  ;
@@ -124,7 +124,7 @@ wire [1:0]  ifu_arburst ;
 wire        ifu_rready  ;
 wire        ifu_rvalid  ;
 wire [1:0]  ifu_rresp   ;
-wire [63:0] ifu_rdata   ;
+wire [31:0] ifu_rdata   ;
 wire        ifu_rlast   ;
 wire [3:0]  ifu_rid     ;
 
@@ -137,8 +137,8 @@ wire [2:0]  exu_awsize  ;
 wire [1:0]  exu_awburst ;
 wire        exu_wready  ;
 wire        exu_wvalid  ;
-wire [63:0] exu_wdata   ;
-wire [7:0]  exu_wstrb   ;
+wire [31:0] exu_wdata   ;
+wire [3:0]  exu_wstrb   ;
 wire        exu_wlast   ;
 wire        exu_bready  ;
 wire        exu_bvalid  ;
@@ -154,37 +154,9 @@ wire [1:0]  exu_arburst ;
 wire        exu_rready  ;
 wire        exu_rvalid  ;
 wire [1:0]  exu_rresp   ;
-wire [63:0] exu_rdata   ;
+wire [31:0] exu_rdata   ;
 wire        exu_rlast   ;
 wire [3:0]  exu_rid     ;
-
-always @(posedge clock) begin
-  // $display("reset: %d", reset);
-  // $display("IFU_valid: %d", IFU_valid); 
-  // $display("IDU_valid: %d", IDU_valid); 
-  // $display("EXU_valid: %d", EXU_valid); 
-  // $display("WBU_valid: %d", WBU_valid); 
-  // $display("io_master_arvalid: %d",  io_master_arvalid); 
-  // $display("io_master_arready: %d",  io_master_arready); 
-  // $display("io_master_araddr : 0x%08x",  io_master_araddr ); 
-  // $display("io_master_rvalid: %d",  io_master_rvalid); 
-  // $display("io_master_rready: %d",  io_master_rready);
-  // $display("io_master_rdata: 0x%08x",  io_master_rdata[31:0]);
-  // $display("io_master_awvalid: %d",  io_master_awvalid); 
-  // $display("io_master_awready: %d",  io_master_awready); 
-  // $display("io_master_awaddr : 0x%08x",  io_master_awaddr ); 
-  // $display("io_master_wvalid: %d",  io_master_wvalid); 
-  // $display("io_master_wready: %d",  io_master_wready);
-  // $display("io_master_wlast: %d",  io_master_wlast);
-  // $display("io_master_wdata: 0x%08x",  io_master_wdata[31:0]); 
-  // $display("io_master_bvalid: %d",  io_master_bvalid);
-  // $display("io_master_bready: %d",  io_master_bready);
-//   $display("io_master_arid   : %d",  io_master_arid   ); 
-//   $display("io_master_arlen  : %d",  io_master_arlen  ); 
-//   $display("io_master_arsize : %d",  io_master_arsize ); 
-//   $display("io_master_arburst: %d",  io_master_arburst); 
-//   $display("io_master_rready : %d",  io_master_rready ); 
-end
 
 ysyx_23060221_Ifu ifu(
   .clk      (clock      )  ,
@@ -226,40 +198,50 @@ ysyx_23060221_Ifu ifu(
   .rid      (ifu_rid    )  
   );
 
+wire         icache_arready;
+wire         icache_arvalid;
+wire  [31:0] icache_araddr ;
+wire  [3:0]  icache_arid   ;
+wire  [7:0]  icache_arlen  ;
+wire  [2:0]  icache_arsize ;
+wire  [1:0]  icache_arburst;
+wire         icache_rready ;
+wire         icache_rvalid ;
+wire  [1:0]  icache_rresp  ;
+wire  [31:0] icache_rdata  ;
+wire         icache_rlast  ;
+wire  [3:0]  icache_rid    ; 
 
-// ysyx_23060221_DataMem dm(
-//   .clk(clock),
-//   .reset(reset),
-//   .awready  (sram_awready)  ,
-//   .awvalid  (sram_awvalid)  ,
-//   .awaddr   (sram_awaddr )  ,
-//   .awid     (sram_awid   )  ,
-//   .awlen    (sram_awlen  )  ,
-//   .awsize   (sram_awsize )  ,
-//   .awburst  (sram_awburst)  ,
-//   .wready   (sram_wready )  ,
-//   .wvalid   (sram_wvalid )  ,
-//   .wdata    (sram_wdata  )  ,
-//   .wstrb    (sram_wstrb  )  ,
-//   .wlast    (sram_wlast  )  ,
-//   .bready   (sram_bready )  ,
-//   .bvalid   (sram_bvalid )  ,
-//   .bresp    (sram_bresp  )  ,
-//   .bid      (sram_bid    )  ,
-//   .arready  (sram_arready)  ,
-//   .arvalid  (sram_arvalid)  ,
-//   .araddr   (sram_araddr )  ,
-//   .arid     (sram_arid   )  ,
-//   .arlen    (sram_arlen  )  ,
-//   .arsize   (sram_arsize )  ,
-//   .arburst  (sram_arburst)  ,
-//   .rready   (sram_rready )  ,
-//   .rvalid   (sram_rvalid )  ,
-//   .rresp    (sram_rresp  )  ,
-//   .rdata    (sram_rdata  )  ,
-//   .rlast    (sram_rlast  )  ,
-//   .rid      (sram_rid    )  
-// );
+cache icache(
+  .clk(clock),
+  .rst(reset)  ,
+  .in_arready (ifu_arready), 
+  .in_arvalid (ifu_arvalid), 
+  .in_araddr  (ifu_araddr ), 
+  .in_arid    (ifu_arid   ), 
+  .in_arlen   (ifu_arlen  ), 
+  .in_arsize  (ifu_arsize ), 
+  .in_arburst (ifu_arburst), 
+  .in_rready  (ifu_rready ), 
+  .in_rvalid  (ifu_rvalid ),   
+  .in_rresp   (ifu_rresp  ),  
+  .in_rdata   (ifu_rdata  ),  
+  .in_rlast   (ifu_rlast  ),  
+  .in_rid     (ifu_rid    ), 
+  .out_arready(icache_arready), 
+  .out_arvalid(icache_arvalid), 
+  .out_araddr (icache_araddr ), 
+  .out_arid   (icache_arid   ), 
+  .out_arlen  (icache_arlen  ), 
+  .out_arsize (icache_arsize ), 
+  .out_arburst(icache_arburst),  
+  .out_rready (icache_rready ), 
+  .out_rvalid (icache_rvalid ), 
+  .out_rresp  (icache_rresp  ),   
+  .out_rdata  (icache_rdata  ),   
+  .out_rlast  (icache_rlast  ),  
+  .out_rid    (icache_rid    )
+  ); 
 
 ysyx_23060221_Arbiter arbiter(
   .clk         (clock)       ,
@@ -279,19 +261,19 @@ ysyx_23060221_Arbiter arbiter(
   .ifu_bvalid  (ifu_bvalid  ), 
   .ifu_bresp   (ifu_bresp   ), 
   .ifu_bid     (ifu_bid     ), 
-  .ifu_arready (ifu_arready ),
-  .ifu_arvalid (ifu_arvalid ), 
-  .ifu_araddr  (ifu_araddr  ), 
-  .ifu_arid    (ifu_arid    ), 
-  .ifu_arlen   (ifu_arlen   ), 
-  .ifu_arsize  (ifu_arsize  ), 
-  .ifu_arburst (ifu_arburst ),
-  .ifu_rready  (ifu_rready  ),  
-  .ifu_rvalid  (ifu_rvalid  ), 
-  .ifu_rresp   (ifu_rresp   ),
-  .ifu_rdata   (ifu_rdata   ), 
-  .ifu_rlast   (ifu_rlast   ), 
-  .ifu_rid     (ifu_rid     ), 
+  .ifu_arready (icache_arready ),
+  .ifu_arvalid (icache_arvalid ), 
+  .ifu_araddr  (icache_araddr  ), 
+  .ifu_arid    (icache_arid    ), 
+  .ifu_arlen   (icache_arlen   ), 
+  .ifu_arsize  (icache_arsize  ), 
+  .ifu_arburst (icache_arburst ),
+  .ifu_rready  (icache_rready  ),  
+  .ifu_rvalid  (icache_rvalid  ), 
+  .ifu_rresp   (icache_rresp   ),
+  .ifu_rdata   (icache_rdata   ), 
+  .ifu_rlast   (icache_rlast   ), 
+  .ifu_rid     (icache_rid     ), 
   .exu_awready (exu_awready ), 
   .exu_awvalid (exu_awvalid ),
   .exu_awaddr  (exu_awaddr  ), 
@@ -351,40 +333,6 @@ ysyx_23060221_Arbiter arbiter(
   .io_master_rlast  (io_master_rlast  ), 
   .io_master_rid    (io_master_rid    )
 );
-
-// ysyx_23060221_Uart uart(
-//   .clk(clock),
-//   .reset(reset),
-//   .awready  (uart_awready)  ,
-//   .awvalid  (uart_awvalid)  ,
-//   .awaddr   (uart_awaddr )  ,
-//   .awid     (uart_awid   )  ,
-//   .awlen    (uart_awlen  )  ,
-//   .awsize   (uart_awsize )  ,
-//   .awburst  (uart_awburst)  ,
-//   .wready   (uart_wready )  ,
-//   .wvalid   (uart_wvalid )  ,
-//   .wdata    (uart_wdata  )  ,
-//   .wstrb    (uart_wstrb  )  ,
-//   .wlast    (uart_wlast  )  ,
-//   .bready   (uart_bready )  ,
-//   .bvalid   (uart_bvalid )  ,
-//   .bresp    (uart_bresp  )  ,
-//   .bid      (uart_bid    )  ,
-//   .arready  (uart_arready)  ,
-//   .arvalid  (uart_arvalid)  ,
-//   .araddr   (uart_araddr )  ,
-//   .arid     (uart_arid   )  ,
-//   .arlen    (uart_arlen  )  ,
-//   .arsize   (uart_arsize )  ,
-//   .arburst  (uart_arburst)  ,
-//   .rready   (uart_rready )  ,
-//   .rvalid   (uart_rvalid )  ,
-//   .rresp    (uart_rresp  )  ,
-//   .rdata    (uart_rdata  )  ,
-//   .rlast    (uart_rlast  )  ,
-//   .rid      (uart_rid    )  
-// );
 
 ysyx_23060221_Idu idu(
   .rst(reset),

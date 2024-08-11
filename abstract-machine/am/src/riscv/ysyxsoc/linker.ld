@@ -1,33 +1,42 @@
 ENTRY(_start)
-PHDRS { text1 PT_LOAD; text2 PT_LOAD; rodata PT_LOAD; data PT_LOAD; }
+PHDRS { fsbl PT_LOAD; ssbl PT_LOAD; text PT_LOAD; rodata PT_LOAD; data PT_LOAD; }
 
 MEMORY {
   flash : ORIGIN = 0x30000000, LENGTH = 16M
-  psram : ORIGIN = 0x80000000, LENGTH = 4M
+  sdram : ORIGIN = 0xa0000000, LENGTH = 4M
 }
 
 SECTIONS {
   /* _pmem_start and _entry_offset are defined in LDFLAGS */
   . = ORIGIN(flash);
-  .text1 : {
+  .fsbl : {
     *(entry)
-    *(._trm_init)
     *(.bootload)
-  } > flash AT>flash : text1
+    *(.fsbl)
+  } > flash AT>flash : fsbl
 
-  .text2 : {
-    _stext2_virt = .;
+  .ssbl : {
+    _sssbl_virt = .;
+    *(.bootload)
+    *(.ssbl)
+    _essbl_virt = .;
+  } > sdram AT>flash : ssbl
+  _sssbl_phys = LOADADDR(.ssbl);
+
+  .text : {
+    _stext_virt = .;
+    *(._trm_init)
     *(.text*)
-    _etext2_virt = .;
-  } > psram AT>flash : text2
-  _stext2_phys = LOADADDR(.text2);
+    _etext_virt = .;
+  } > sdram AT>flash : text
+  _stext_phys = LOADADDR(.text);
 
   .rodata : {
     _srodata_virt = .;
     *(.srodata*)
     *(.rodata*)
     _erodata_virt = .;
-  } > psram AT> flash : rodata
+  } > sdram AT> flash : rodata
   _srodata_phys = LOADADDR(.rodata);
 
   .data : {
@@ -35,7 +44,7 @@ SECTIONS {
     *(.sdata*)
     *(.data*)
     _edata_virt = .;
-  } > psram AT> flash : data
+  } > sdram AT> flash : data
   _sdata_phys = LOADADDR(.data);
 
   .bss : {
@@ -43,11 +52,10 @@ SECTIONS {
     *(.bss*)
     *(.sbss*)
     *(.scommon)
-  } > psram AT> flash
+  } > sdram AT> flash
 
-  _stack_top = 0x80200000;
+  _stack_top = 0xa0200000;
   . = _stack_top + 0x1ffff0;
   _stack_pointer = .;
   _heap_start = _edata_virt;
-  _heap_end = _stack_pointer;
 }
