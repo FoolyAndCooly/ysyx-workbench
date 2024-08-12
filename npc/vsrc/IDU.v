@@ -1,4 +1,6 @@
+`ifndef SYNTHESIS
 import "DPI-C" function void set_npc_state(input byte state, input byte info);
+`endif
 module ImmGen(
   input [31:0] inst,
   input [2:0] ExtOp,
@@ -25,19 +27,17 @@ module RegisterFile (
   input [2:0] CSRctr,
   output [31:0] busA,
   output [31:0] busB,
-  input reg [31:0] rf_in [31:0],
-  output reg [31:0] rf_out [31:0],
-  input reg [31:0] csr[3:0] // 0:mepc, 1:mstatus, 2:mcause, 3:mtvec
+  input [1023:0] rf_in ,
+  input [127:0] csr // 0:mepc, 1:mstatus, 2:mcause, 3:mtvec
 );
 
   wire [31:0] def;
-  assign def = rf_in[Ra];
+  assign def = rf_in[{5'b0,Ra}<<5+:32];
   MuxKeyWithDefault #(2, 3, 32) d (busA, CSRctr, def, {
-    3'b001, csr[`MTVEC],
-    3'b100, csr[`MEPC]
+    3'b001, csr[{5'b0,`MTVEC}<<5+:32],
+    3'b100, csr[{5'b0,`MEPC}<<5+:32]
   });
-  assign busB = rf_in[Rb];
-  assign rf_out[0] = 0;
+  assign busB = rf_in[{5'b0,Rb}<<5+:32];
 
 endmodule
 
@@ -79,7 +79,12 @@ always @(posedge clk) begin
             3'b010: ctr <= 22'b0000101000010000001000; // lw
             3'b100: ctr <= 22'b0000110000010000001000; // lbu
             3'b101: ctr <= 22'b0000110100010000001000; // lhu
-            default: begin ctr <= {22{1'b1}}; set_npc_state(3,0); end
+            default: begin 
+	      ctr <= {22{1'b1}};
+`ifndef SYNTHESIS
+	      set_npc_state(3,0); 
+`endif
+	    end
           endcase
         end
         5'b00100: begin
@@ -92,7 +97,12 @@ always @(posedge clk) begin
             3'b101: ctr <= func7_5 ? 22'b0000011100011101001000 : 22'b0000011100010101001000; // srai
             3'b110: ctr <= 22'b0000011100010110001000; // ori
             3'b111: ctr <= 22'b0000011100010111001000; // andi
-            default: begin ctr <= {22{1'b1}}; set_npc_state(3,0); end
+            default: begin 
+	      ctr <= {22{1'b1}}; 
+`ifndef SYNTHESIS
+	      set_npc_state(3,0); 
+`endif
+	    end
           endcase
         end
         5'b00101: ctr <= 22'b0000011100010000101001; // auipc
@@ -101,7 +111,12 @@ always @(posedge clk) begin
             3'b000: ctr <= 22'b0001000000000000001010; // sb
             3'b001: ctr <= 22'b0001000100000000001010; // sh
             3'b010: ctr <= 22'b0001001000000000001010; // sw
-            default: begin ctr <= {22{1'b1}}; set_npc_state(3,0); end
+            default: begin
+	      ctr <= {22{1'b1}};
+`ifndef SYNTHESIS
+	      set_npc_state(3,0); 
+`endif
+	    end
           endcase
         end
         5'b01100: begin
@@ -114,7 +129,12 @@ always @(posedge clk) begin
             3'b101: ctr <= func7_5 ? 22'b0000011100011101000111 : 22'b0000011100010101000111;
             3'b110: ctr <= 22'b0000011100010110000111; // or
             3'b111: ctr <= 22'b0000011100010111000111; // and
-            default: begin ctr <= {22{1'b1}}; set_npc_state(3,0); end
+            default: begin
+	      ctr <= {22{1'b1}};
+`ifndef SYNTHESIS
+	      set_npc_state(3,0); 
+`endif
+	    end
           endcase
         end
         5'b01101: ctr <= 22'b0000011100010011001001; // lui
@@ -126,7 +146,12 @@ always @(posedge clk) begin
             3'b110: ctr <= 22'b0000011111001010000011; // bltu
             3'b101: ctr <= 22'b0000011111100010000011; // bge
             3'b111: ctr <= 22'b0000011111101010000011; // bgeu
-            default: begin ctr <= {22{1'b1}}; set_npc_state(3,0); end
+            default: begin 
+	      ctr <= {22{1'b1}}; 
+`ifndef SYNTHESIS
+	      set_npc_state(3,0); 
+`endif
+	    end
           endcase
         end
         5'b11001: ctr <= 22'b0000011101010000110000; // jalr
@@ -136,14 +161,29 @@ always @(posedge clk) begin
             3'b001: ctr <= 22'b0100011100000011001000; // csrrw
             3'b010: ctr <= 22'b0110011100000011001000; // csrrs
             3'b000: begin
-              if (inst20) begin ctr <= {22{1'b1}}; set_npc_state(2,0); end //ebreak
+              if (inst20) begin 
+	      ctr <= {22{1'b1}};
+`ifndef SYNTHESIS
+	      set_npc_state(2,0); 
+`endif
+	      end //ebreak
               else if (inst21) begin ctr <= 22'b1000011101000000000111; end // mret
               else begin ctr <= 22'b0010011101000000101111; end // ecall
             end
-            default: begin ctr <= {22{1'b1}}; set_npc_state(3,0); end
+            default: begin 
+	      ctr <= {22{1'b1}}; 
+`ifndef SYNTHESIS
+	      set_npc_state(3,0); 
+`endif
+	    end
           endcase
         end
-        default: begin ctr <= {22{1'b1}}; set_npc_state(3,0); end
+        default: begin 
+	  ctr <= {22{1'b1}};
+`ifndef SYNTHESIS
+	      set_npc_state(3,0); 
+`endif
+        end
       endcase
     end
   end
@@ -176,9 +216,8 @@ module ysyx_23060221_Idu(
   output [31:0] src1,
   output [31:0] src2,
   output [31:0] imm,
-  input reg [31:0] csr[3:0],
-  input reg [31:0] rf_in[31:0],
-  output reg [31:0] rf_out[31:0],
+  input reg [127:0] csr,
+  input reg [1023:0] rf_in,
   output [2:0] CSRctr,
   output wen,
   output reg IDU_ready,
@@ -234,7 +273,6 @@ module ysyx_23060221_Idu(
   .busA(src1), 
   .busB(src2),
   .rf_in(rf_in),
-  .rf_out(rf_out),
   .csr(csr));
 
   ImmGen ig (inst, extop, imm);

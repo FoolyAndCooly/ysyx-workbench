@@ -11,7 +11,9 @@ static long long miss_cnt;
 
 extern "C" void hit_count(){hit_cnt++;}
 extern "C" void miss_count(){miss_cnt++;}
-void cache_display(){printf("hit probability: %f, miss probability: %f\n", (double)hit_cnt/(hit_cnt + miss_cnt), (double)miss_cnt/(hit_cnt + miss_cnt));}
+void cache_display(){
+  printf("hit probability: %f, miss probability: %f\n", (double)hit_cnt/(hit_cnt + miss_cnt), (double)miss_cnt/(hit_cnt + miss_cnt));
+  }
 
 struct block{
   uint32_t data[DATA_SIZE];

@@ -49,10 +49,12 @@ static void iring_display(){
 #endif
 
 void device_update();
+void docache(uint32_t pc);
 
 static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
 #ifdef CONFIG_ITRACE_COND
   if (ITRACE_COND) { log_write("%s\n", _this->logbuf); }
+  docache(_this->pc);
   strcpy(iringbuf[iring_point], _this->logbuf);
   iring_step();
 #endif

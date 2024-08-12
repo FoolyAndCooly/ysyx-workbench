@@ -78,8 +78,8 @@ assign io_slave_rid      = 0;
 reg IFU_valid, IFU_ready, IDU_ready, IDU_valid, EXU_ready, EXU_valid, WBU_ready, WBU_valid;
 
 reg [31:0] pc;
-reg [31:0] csr[3:0];
-reg [31:0] rf[31:0];
+reg [127:0] csr;
+reg [1023:0] rf;
 
 wire [31:0] inst;
 wire [31:0] res;
@@ -350,7 +350,6 @@ ysyx_23060221_Idu idu(
   .csr(csr),
   .clk(clock),
   .rf_in(rf),
-  .rf_out(rf),
   .wen(wen),
   .CSRctr(CSRctr),
   .IFU_valid(IFU_valid),

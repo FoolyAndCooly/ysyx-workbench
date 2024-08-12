@@ -1,6 +1,8 @@
-import "DPI-C" function bit cache_check(input int index, input int tag);
-import "DPI-C" function void cache_read(input int index, input int offset, output int data);
-import "DPI-C" function void cache_write(input int index, input int data, input int tag, input int count);
+`define IDLE 3'd0
+`define CHECK 3'd1
+`define REQ 3'd2
+`define TRANS 3'd3
+`define DATA 3'd4
 
 module cache(
   input             clk  ,
@@ -36,21 +38,26 @@ module cache(
   parameter OFFSET_WIDTH = $clog2(BLOCK_SIZE);
   parameter BLOCK_NUM  = 16;
   parameter INDEX_WIDTH = $clog2(BLOCK_NUM);
+  parameter TAG_WIDTH = 32 - OFFSET_WIDTH - INDEX_WIDTH;
+
+  reg [BLOCK_NUM*TAG_WIDTH-1:0] cache_tag;
+  reg [BLOCK_NUM-1:0] cache_valid;
+  reg [(BLOCK_NUM<<OFFSET_WIDTH<<3)-1:0] cache_data;
 
   wire [OFFSET_WIDTH-1:0] offset = in_araddr_r[OFFSET_WIDTH-1:0];
   wire [INDEX_WIDTH-1:0]  index = in_araddr_r[INDEX_WIDTH+OFFSET_WIDTH-1:OFFSET_WIDTH];
   wire [31-OFFSET_WIDTH-INDEX_WIDTH:0] tag = in_araddr_r[31:INDEX_WIDTH+OFFSET_WIDTH];
 
-  typedef enum [2:0] {idle_t, check_t, req_t, trans_t, data_t} state_t;
   reg [2:0] state;
 
+  wire check = (cache_tag[index*TAG_WIDTH+:TAG_WIDTH]==tag) & cache_valid[index];
   always @(posedge clk) begin
     case (state) 
-      idle_t: state <= (in_arvalid & in_arready) ? check_t: idle_t;
-      check_t: state <= (cache_check({{(32-INDEX_WIDTH){1'd0}}, index}, {{(OFFSET_WIDTH+INDEX_WIDTH){1'd0}}, tag})) ? data_t: req_t;
-      data_t: state <= idle_t;
-      req_t: state <= (out_arvalid & out_arready) ? trans_t :req_t;
-      trans_t: state <= (out_rlast) ? data_t : trans_t;
+      `IDLE: state <= (in_arvalid & in_arready) ? `CHECK: `IDLE;
+      `CHECK: state <= (check) ? `DATA: `REQ;
+      `DATA: state <= `IDLE;
+      `REQ: state <= (out_arvalid & out_arready) ? `TRANS :`REQ;
+      `TRANS: state <= (out_rlast) ? `DATA : `TRANS;
       default: state <= state;
     endcase
   end
@@ -59,7 +66,7 @@ module cache(
 
   reg [31:0] in_araddr_r;
   always @(posedge clk) begin
-    in_araddr_r <= (state == idle_t) ? in_araddr : in_araddr_r;
+    in_araddr_r <= (state == `IDLE) ? in_araddr : in_araddr_r;
   end
 
   reg in_rvalid_r;
@@ -68,8 +75,8 @@ module cache(
   assign in_rvalid = in_rvalid_r;
   assign in_rdata = in_rdata_r;
   always @(posedge clk) begin
-    in_rvalid_r <= (state == data_t) ? 'd1 : 'd0;
-    if (state == data_t) cache_read({{(32-INDEX_WIDTH){1'd0}}, index}, {{(32-OFFSET_WIDTH){1'd0}}, offset}, in_rdata_r);
+    in_rvalid_r <= (state == `DATA) ? 'd1 : 'd0;
+    if (state == `DATA)  in_rdata_r <= cache_data[{{(OFFSET_WIDTH+3){1'b0}},index}<<(OFFSET_WIDTH+3)|{{(INDEX_WIDTH+3){1'b0}},offset}<<5+:32];
   end
   
   reg out_arvalid_r;
@@ -80,18 +87,20 @@ module cache(
   assign out_arsize = 3'b010;
   assign out_arburst = 2'b01;
   always @(posedge clk) begin
-    if (state == req_t) begin
+    if (state == `REQ) begin
       out_araddr_r <= in_araddr_r & {{(32-OFFSET_WIDTH){1'b1}}, {OFFSET_WIDTH{1'b0}}};
       out_arvalid_r <= (out_arvalid & out_arready) ? 1'd0 : 1'd1;
     end
   end
 
-  reg [3:0] count;
+  reg [8:0] count;
   assign out_rready = out_rvalid;
   always @(posedge clk) begin
-    if (state == trans_t) begin
+    if (state == `TRANS) begin
       if (out_rvalid & out_rready) begin
-        cache_write({{(32-INDEX_WIDTH){1'd0}}, index}, out_rdata,{{(OFFSET_WIDTH+INDEX_WIDTH){1'd0}}, tag}, {{28{1'b0}}, count});
+	cache_tag[{{TAG_WIDTH{1'd0}}, index}*TAG_WIDTH+:TAG_WIDTH] <= tag;
+	cache_valid[index] <= 1'd1;
+	cache_data[{{(OFFSET_WIDTH+3){1'b0}},index}<<(OFFSET_WIDTH+3)|count<<5+:32] <= out_rdata;
         count <= count + 1;
       end
     end

@@ -20,6 +20,7 @@ void init_monitor(int, char *[]);
 void am_init_monitor();
 void engine_start();
 int is_exit_status_bad();
+void cache_display();
 word_t expr(char *e, bool *success);
 
 int main(int argc, char *argv[]) {
@@ -58,5 +59,6 @@ int main(int argc, char *argv[]) {
   /* Start engine. */
   engine_start();
 #endif
+  cache_display();
   return is_exit_status_bad();
 }

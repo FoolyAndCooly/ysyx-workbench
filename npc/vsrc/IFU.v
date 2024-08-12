@@ -1,5 +1,6 @@
+`ifndef SYNTHESIS
 import "DPI-C" function void ifu_count();
-
+`endif
 module ysyx_23060221_Ifu(
   input             clk  ,
   input             rst  ,
@@ -70,7 +71,9 @@ always @(posedge clk) begin
     IFU_valid <= 0;
   else if (memfinish) begin
     IFU_valid <= 1;
+`ifndef SYNTHESIS
     ifu_count();
+`endif
   end
 end
 

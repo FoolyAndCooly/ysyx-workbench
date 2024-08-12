@@ -1,9 +1,8 @@
-import "DPI-C" function int pmem_read(input int raddr, input int len);
-import "DPI-C" function void pmem_write(
-  input int waddr, input byte len, input int wdata);
+`ifndef SYNTHESIS
 import "DPI-C" function void exu_count();
 import "DPI-C" function void lsu_begin();
 import "DPI-C" function void lsu_end();
+`endif
 
 module Alu(
   input [31:0] a,
@@ -165,14 +164,18 @@ always @(posedge clk) begin
     if (syn_IDU_EXU) begin
       if (memop == 3'b111) begin
         EXU_valid <= 1;
+`ifndef SYNTHESIS
         exu_count();
       end else begin
         lsu_begin();
+`endif
       end
     end
     else if (memfinish) begin
       EXU_valid <= 1;
+`ifndef SYNTHESIS
       lsu_end();
+`endif
     end
   end
 end
