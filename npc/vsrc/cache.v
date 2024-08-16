@@ -40,9 +40,9 @@ module cache(
   parameter INDEX_WIDTH = $clog2(BLOCK_NUM);
   parameter TAG_WIDTH = 32 - OFFSET_WIDTH - INDEX_WIDTH;
 
-  reg [BLOCK_NUM*TAG_WIDTH-1:0] cache_tag;
+  reg [BLOCK_NUM-1:0] cache_tag[0:TAG_WIDTH-1];
   reg [BLOCK_NUM-1:0] cache_valid;
-  reg [(BLOCK_NUM<<OFFSET_WIDTH<<3)-1:0] cache_data;
+  reg [BLOCK_NUM-1:0] cache_data[0:(OFFSET_WIDTH<<3)-1];
 
   wire [OFFSET_WIDTH-1:0] offset = in_araddr_r[OFFSET_WIDTH-1:0];
   wire [INDEX_WIDTH-1:0]  index = in_araddr_r[INDEX_WIDTH+OFFSET_WIDTH-1:OFFSET_WIDTH];
@@ -50,7 +50,7 @@ module cache(
 
   reg [2:0] state;
 
-  wire check = (cache_tag[index*TAG_WIDTH+:TAG_WIDTH]==tag) & cache_valid[index];
+  wire check = (cache_tag[index]==tag) & cache_valid[index];
   always @(posedge clk) begin
     case (state) 
       `IDLE: state <= (in_arvalid & in_arready) ? `CHECK: `IDLE;
@@ -76,7 +76,7 @@ module cache(
   assign in_rdata = in_rdata_r;
   always @(posedge clk) begin
     in_rvalid_r <= (state == `DATA) ? 'd1 : 'd0;
-    if (state == `DATA)  in_rdata_r <= cache_data[{{(OFFSET_WIDTH+3){1'b0}},index}<<(OFFSET_WIDTH+3)|{{(INDEX_WIDTH+3){1'b0}},offset}<<5+:32];
+    if (state == `DATA)  in_rdata_r <= cache_data[index][(offset<<3)+:32];
   end
   
   reg out_arvalid_r;
@@ -98,9 +98,9 @@ module cache(
   always @(posedge clk) begin
     if (state == `TRANS) begin
       if (out_rvalid & out_rready) begin
-	cache_tag[{{TAG_WIDTH{1'd0}}, index}*TAG_WIDTH+:TAG_WIDTH] <= tag;
+	cache_tag[index] <= tag;
 	cache_valid[index] <= 1'd1;
-	cache_data[{{(OFFSET_WIDTH+3){1'b0}},index}<<(OFFSET_WIDTH+3)|count<<5+:32] <= out_rdata;
+	cache_data[index] <= out_rdata;
         count <= count + 1;
       end
     end
