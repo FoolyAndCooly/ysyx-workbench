@@ -1,21 +1,5 @@
 module ysyx_23060221_Arbiter(
   input clk,
-  output        ifu_awready,
-  input         ifu_awvalid,
-  input [31:0]  ifu_awaddr ,
-  input [3:0]   ifu_awid   ,
-  input [7:0]   ifu_awlen  ,
-  input [2:0]   ifu_awsize ,
-  input [1:0]   ifu_awburst,
-  output        ifu_wready ,
-  input         ifu_wvalid ,
-  input [31:0]  ifu_wdata  ,
-  input [3:0]   ifu_wstrb  ,
-  input         ifu_wlast  ,
-  input         ifu_bready ,
-  output        ifu_bvalid ,
-  output [1:0]  ifu_bresp  ,
-  output [3:0]  ifu_bid    ,
   output        ifu_arready,
   input         ifu_arvalid,
   input [31:0]  ifu_araddr ,
@@ -93,14 +77,14 @@ module ysyx_23060221_Arbiter(
 
   reg master, used;
 
-  assign ifu_fast = ifu_arvalid | ifu_awvalid;
+  assign ifu_fast = ifu_arvalid;
   assign exu_fast = exu_arvalid | exu_awvalid;
   assign mst = (ifu_fast) ? 0 : ((exu_fast) ? 1 : master);
   assign io_master_memfinish = (io_master_bvalid & io_master_bready) | (io_master_rvalid & io_master_rready);
   always @(posedge clk) begin
     // $display("mst: %d", mst);
-    if (ifu_arvalid | exu_arvalid | ifu_awvalid | exu_awvalid) used <= 1;
-    if (ifu_arvalid | ifu_awvalid) begin
+    if (ifu_arvalid | exu_arvalid | exu_awvalid) used <= 1;
+    if (ifu_arvalid) begin
       master <= 0;
     end
     else begin
@@ -163,17 +147,17 @@ assign io_master_arsize  =  arsize ;
 assign io_master_arburst =  arburst;
 assign io_master_rready  =  rready ;
 
-assign awvalid = (mst) ?  exu_awvalid :  ifu_awvalid ; 
-assign awaddr  = (mst) ?  exu_awaddr  :  ifu_awaddr  ;
-assign awid    = (mst) ?  exu_awid    :  ifu_awid    ;
-assign awlen   = (mst) ?  exu_awlen   :  ifu_awlen   ;
-assign awsize  = (mst) ?  exu_awsize  :  ifu_awsize  ;
-assign awburst = (mst) ?  exu_awburst :  ifu_awburst ;
-assign wvalid  = (mst) ?  exu_wvalid  :  ifu_wvalid  ;
-assign wdata   = (mst) ?  exu_wdata   :  ifu_wdata   ;
-assign wstrb   = (mst) ?  exu_wstrb   :  ifu_wstrb   ;
-assign wlast   = (mst) ?  exu_wlast   :  ifu_wlast   ;
-assign bready  = (mst) ?  exu_bready  :  ifu_bready  ;
+assign awvalid = exu_awvalid; 
+assign awaddr  = exu_awaddr ;
+assign awid    = exu_awid   ;
+assign awlen   = exu_awlen  ;
+assign awsize  = exu_awsize ;
+assign awburst = exu_awburst;
+assign wvalid  = exu_wvalid ;
+assign wdata   = exu_wdata  ;
+assign wstrb   = exu_wstrb  ;
+assign wlast   = exu_wlast  ;
+assign bready  = exu_bready ;
 assign arvalid = (mst) ?  exu_arvalid :  ifu_arvalid ;
 assign araddr  = (mst) ?  exu_araddr  :  ifu_araddr  ;
 assign arid    = (mst) ?  exu_arid    :  ifu_arid    ;
@@ -194,11 +178,6 @@ assign rdata   =  io_master_rdata   ;
 assign rlast   =  io_master_rlast   ; 
 assign rid     =  io_master_rid     ; 
 
-assign ifu_awready = (~mst) ?  awready : 0; 
-assign ifu_wready  = (~mst) ?  wready  : 0;    
-assign ifu_bvalid  = (~mst) ?  bvalid  : 0;    
-assign ifu_bresp   = (~mst) ?  bresp   : 0;    
-assign ifu_bid     = (~mst) ?  bid     : 0;    
 assign ifu_arready = (~mst) ?  arready : 0;    
 assign ifu_rvalid  = (~mst) ?  rvalid  : 0;    
 assign ifu_rresp   = (~mst) ?  rresp   : 0;    
@@ -206,11 +185,11 @@ assign ifu_rdata   = (~mst) ?  rdata   : 0;
 assign ifu_rlast   = (~mst) ?  rlast   : 0;    
 assign ifu_rid     = (~mst) ?  rid     : 0;    
 
-assign exu_awready = (mst)  ?  awready : 0;
-assign exu_wready  = (mst)  ?  wready  : 0;
-assign exu_bvalid  = (mst)  ?  bvalid  : 0;
-assign exu_bresp   = (mst)  ?  bresp   : 0;
-assign exu_bid     = (mst)  ?  bid     : 0;
+assign exu_awready = awready;
+assign exu_wready  = wready ;
+assign exu_bvalid  = bvalid ;
+assign exu_bresp   = bresp  ;
+assign exu_bid     = bid    ;
 assign exu_arready = (mst)  ?  arready : 0;
 assign exu_rvalid  = (mst)  ?  rvalid  : 0;
 assign exu_rresp   = (mst)  ?  rresp   : 0;

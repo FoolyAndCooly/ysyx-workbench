@@ -10,22 +10,6 @@ module ysyx_23060221_Ifu(
   input  reg    IDU_ready,
   output reg    IFU_valid,
   output reg    IFU_ready,
-  input         awready  ,
-  output        awvalid  ,
-  output [31:0] awaddr   ,
-  output [3:0]  awid     ,
-  output [7:0]  awlen    ,
-  output [2:0]  awsize   ,
-  output [1:0]  awburst  ,
-  input         wready   ,
-  output        wvalid   ,
-  output [31:0] wdata    ,
-  output [3:0]  wstrb    ,
-  output        wlast    ,
-  output        bready   ,
-  input         bvalid   ,
-  input  [1:0]  bresp    ,
-  input  [3:0]  bid      ,
   input         arready  ,
   output        arvalid  ,
   output [31:0] araddr   ,
@@ -77,41 +61,22 @@ always @(posedge clk) begin
   end
 end
 
-assign memfinish = (bvalid & bready) | (rvalid & rready);
+assign memfinish = (rvalid & rready);
 
 /*************AXI-master**************/
 
 /*************register**************/
-reg        reg_awvalid;
-reg [31:0] reg_awaddr ;
-reg        reg_wvalid ;
-reg [31:0] reg_wdata  ;
 reg        reg_arvalid;
 reg [31:0] reg_araddr ;
 reg        reg_rready ;
 reg [31:0] reg_rdata  ;
-reg        reg_bready ;
 
 /*************wire***************/
-wire wstart;
 wire rstart;
 /*************assign**************/
 assign inst = reg_rdata[31:0];
 
-assign wstart = 0;
 assign rstart = syn_WBU_IFU;
-
-assign awvalid = reg_awvalid;
-assign awaddr  = reg_awaddr ;
-assign awid    = 'd0        ;    
-assign awlen   = 'd0        ;
-assign awsize  = 3'b010     ;
-assign awburst = 2'b00      ;
-
-assign wvalid  = reg_wvalid ;
-assign wdata   = reg_wdata  ;
-assign wstrb   = 4'b0000    ;
-assign wlast   = wvalid & wready;
 
 assign arvalid = reg_arvalid;
 assign araddr  = reg_araddr ;
@@ -122,45 +87,7 @@ assign arburst = 2'b00      ;
 
 assign rready  = reg_rready ;
 
-assign bready  = 'd1        ;
-
 /*************process**************/
-
-always @(posedge clk) begin
-  if (rst) reg_arvalid <= 'd0;
-  else if (awvalid & awready) begin 
-    reg_awvalid <= 'd0;
-  end
-  else if(wstart)
-    reg_awvalid <= 'd1;
-  else
-    reg_awvalid <= reg_awvalid;
-end
-
-always @(posedge clk) begin
-  if (wstart) 
-    reg_awaddr <= 'd0;
-  else
-    reg_awaddr <= reg_awaddr;
-end
-
-always @(posedge clk) begin
-  if (wlast)
-    reg_wvalid <= 'd0;
-  else if (awvalid & awready)
-    reg_wvalid <= 'd1;
-  else 
-    reg_wvalid <= reg_wvalid;
-end
-
-// always @(posedge clk) begin
-//   if (bvalid & bready)
-//     reg_bready <= 'd0;
-//   else if (wlast)
-//     reg_bready <= 'd1;
-//   else 
-//     reg_bready <= reg_bready;
-// end
 
 always @(posedge clk) begin
   if (rst) reg_arvalid <= 'd0;
