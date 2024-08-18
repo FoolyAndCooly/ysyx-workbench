@@ -40,9 +40,9 @@ module cache(
   parameter INDEX_WIDTH = $clog2(BLOCK_NUM);
   parameter TAG_WIDTH = 32 - OFFSET_WIDTH - INDEX_WIDTH;
 
-  reg [BLOCK_NUM-1:0] cache_tag[0:TAG_WIDTH-1];
+  reg [TAG_WIDTH-1:0] cache_tag[0:BLOCK_NUM-1];
   reg [BLOCK_NUM-1:0] cache_valid;
-  reg [BLOCK_NUM-1:0] cache_data[0:(OFFSET_WIDTH<<3)-1];
+  reg [(BLOCK_SIZE<<3)-1:0] cache_data[0:BLOCK_NUM-1];
 
   wire [OFFSET_WIDTH-1:0] offset = in_araddr_r[OFFSET_WIDTH-1:0];
   wire [INDEX_WIDTH-1:0]  index = in_araddr_r[INDEX_WIDTH+OFFSET_WIDTH-1:OFFSET_WIDTH];
@@ -76,7 +76,7 @@ module cache(
   assign in_rdata = in_rdata_r;
   always @(posedge clk) begin
     in_rvalid_r <= (state == `DATA) ? 'd1 : 'd0;
-    if (state == `DATA)  in_rdata_r <= cache_data[index][(offset<<3)+:32];
+    if (state == `DATA)  in_rdata_r <= cache_data[index][({3'b0,offset}<<3)+:32];
   end
   
   reg out_arvalid_r;

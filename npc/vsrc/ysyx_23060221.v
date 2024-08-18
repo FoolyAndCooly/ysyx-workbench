@@ -78,15 +78,12 @@ assign io_slave_rid      = 0;
 reg IFU_valid, IFU_ready, IDU_ready, IDU_valid, EXU_ready, EXU_valid, WBU_ready, WBU_valid;
 
 reg [31:0] pc;
-reg [127:0] csr;
-reg [1023:0] rf;
 
 wire [31:0] inst;
 wire [31:0] res;
 wire [31:0] src1, src2;
 wire [31:0] imm;
 wire PCAsrc, PCBsrc;
-wire [2:0] CSRctr;
 
 wire [31:0] wd;
 wire [3:0] aluctr;
@@ -96,24 +93,16 @@ wire [2:0] branch;
 wire [2:0] memop;
 wire memtoreg;
 wire memwr;
-wire wen;
+wire regw;
 
-wire        ifu_awready ;
-wire        ifu_awvalid ;
-wire [31:0] ifu_awaddr  ;
-wire [3:0]  ifu_awid    ;
-wire [7:0]  ifu_awlen   ;
-wire [2:0]  ifu_awsize  ;
-wire [1:0]  ifu_awburst ;
-wire        ifu_wready  ;
-wire        ifu_wvalid  ;
-wire [31:0] ifu_wdata   ;
-wire [3:0]  ifu_wstrb   ;
-wire        ifu_wlast   ;
-wire        ifu_bready  ;
-wire        ifu_bvalid  ;
-wire [1:0]  ifu_bresp   ;
-wire [3:0]  ifu_bid     ;
+wire regwen;
+wire csrwen;
+
+wire csrw;
+wire csrALU;
+wire csrpc;
+wire csrcause;
+
 wire        ifu_arready ;
 wire        ifu_arvalid ;
 wire [31:0] ifu_araddr  ;
@@ -167,22 +156,6 @@ ysyx_23060221_Ifu ifu(
   .IDU_ready(IDU_ready  )  ,
   .IFU_valid(IFU_valid  )  ,
   .IFU_ready(IFU_ready  )  ,
-  .awready  (ifu_awready)  ,
-  .awvalid  (ifu_awvalid)  ,
-  .awaddr   (ifu_awaddr )  ,
-  .awid     (ifu_awid   )  ,
-  .awlen    (ifu_awlen  )  ,
-  .awsize   (ifu_awsize )  ,
-  .awburst  (ifu_awburst)  ,
-  .wready   (ifu_wready )  ,
-  .wvalid   (ifu_wvalid )  ,
-  .wdata    (ifu_wdata  )  ,
-  .wstrb    (ifu_wstrb  )  ,
-  .wlast    (ifu_wlast  )  ,
-  .bready   (ifu_bready )  ,
-  .bvalid   (ifu_bvalid )  ,
-  .bresp    (ifu_bresp  )  ,
-  .bid      (ifu_bid    )  ,
   .arready  (ifu_arready)  ,
   .arvalid  (ifu_arvalid)  ,
   .araddr   (ifu_araddr )  ,
@@ -243,24 +216,36 @@ cache icache(
   .out_rid    (icache_rid    )
   ); 
 
+wire [1:0] csrraddr;
+wire [1:0] csrwaddr;
+wire [31:0] csrrdata;
+wire [31:0] csrwdata;
+
+Csr csr(
+  .clk(clock),
+  .rst(reset),
+  .wen(csrwen),
+  .set_cause(csrcause),
+  .raddr(csrraddr),
+  .waddr(csrwaddr),
+  .wdata(csrwdata),
+  .rdata(csrrdata)
+);
+
+RegisterFile rf(
+  .clk(clock),
+  .rst(reset),
+  .Ra(inst[19:15]),
+  .Rb(inst[24:20]),
+  .busA(src1),
+  .busB(src2),
+  .wen(regwen),
+  .wdata(wd),
+  .waddr(inst[11:7])
+);
+
 ysyx_23060221_Arbiter arbiter(
   .clk         (clock)       ,
-  .ifu_awready (ifu_awready ), 
-  .ifu_awvalid (ifu_awvalid ), 
-  .ifu_awaddr  (ifu_awaddr  ), 
-  .ifu_awid    (ifu_awid    ), 
-  .ifu_awlen   (ifu_awlen   ), 
-  .ifu_awsize  (ifu_awsize  ), 
-  .ifu_awburst (ifu_awburst ), 
-  .ifu_wready  (ifu_wready  ), 
-  .ifu_wvalid  (ifu_wvalid  ), 
-  .ifu_wdata   (ifu_wdata   ),
-  .ifu_wstrb   (ifu_wstrb   ),  
-  .ifu_wlast   (ifu_wlast   ), 
-  .ifu_bready  (ifu_bready  ), 
-  .ifu_bvalid  (ifu_bvalid  ), 
-  .ifu_bresp   (ifu_bresp   ), 
-  .ifu_bid     (ifu_bid     ), 
   .ifu_arready (icache_arready ),
   .ifu_arvalid (icache_arvalid ), 
   .ifu_araddr  (icache_araddr  ), 
@@ -336,6 +321,7 @@ ysyx_23060221_Arbiter arbiter(
 
 ysyx_23060221_Idu idu(
   .rst(reset),
+  .clk(clock),
   .inst(inst),
   .aluctr(aluctr),
   .aluasrc(aluasrc),
@@ -344,14 +330,14 @@ ysyx_23060221_Idu idu(
   .memop(memop),
   .memtoreg(memtoreg),
   .memwr(memwr),
-  .src1(src1),
-  .src2(src2),
   .imm(imm),
-  .csr(csr),
-  .clk(clock),
-  .rf_in(rf),
-  .wen(wen),
-  .CSRctr(CSRctr),
+  .regw(regw),
+  .csrALU(csrALU),
+  .csrw(csrw),
+  .csrpc(csrpc),
+  .csrcause(csrcause),
+  .csrwaddr(csrwaddr),
+  .csrraddr(csrraddr),
   .IFU_valid(IFU_valid),
   .IDU_ready(IDU_ready),
   .IDU_valid(IDU_valid),
@@ -374,6 +360,10 @@ ysyx_23060221_Exu exu(
   .memwr(memwr),
   .memtoreg(memtoreg),
   .wd(wd),
+  .csrALU(csrALU),
+  .csrw(csrw),
+  .csrrdata(csrrdata),
+  .csrwdata(csrwdata),
   .IDU_valid(IDU_valid),
   .EXU_ready(EXU_ready),
   .EXU_valid(EXU_valid),
@@ -417,16 +407,13 @@ ysyx_23060221_Wbu wbu(
   .PCAsrc(PCAsrc),
   .PCBsrc(PCBsrc),
   .pc(pc),
-  .wdata(wd),
-  .waddr(inst[11:7]),
-  .Ra(inst[19:15]),
   .clk(clock),
-  .wen(wen),
-  .rf_in(rf),
-  .rf_out(rf),
-  .csr_in(csr),
-  .csr_out(csr),
-  .CSRctr(CSRctr),
+  .csrw(csrw),
+  .regw(regw),
+  .csrpc(csrpc),
+  .csrrdata(csrrdata),
+  .csrwen(csrwen),
+  .regwen(regwen),
   .EXU_valid(EXU_valid),
   .IFU_ready(IFU_ready),
   .WBU_ready(WBU_ready),

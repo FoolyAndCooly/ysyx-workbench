@@ -1,3 +1,8 @@
+`define MEPC 2'b00
+`define MSTATUS 2'b01
+`define MCAUSE 2'b10
+`define MTVEC 2'b11
+
 `ifndef SYNTHESIS
 import "DPI-C" function void set_npc_state(input byte state, input byte info);
 `endif
@@ -21,24 +26,82 @@ module ImmGen(
   });
 endmodule
 
+module Csr(
+  input clk,
+  input rst,
+  input wen,
+  input set_cause,
+  input [1:0] raddr,
+  input [1:0] waddr,
+  input [31:0] wdata,
+  output [31:0] rdata
+);
+  reg [31:0] csr[0:3]; // 0:mepc, 1:mstatus, 2:mcause, 3:mtvec
+  assign rdata = csr[raddr];
+  always @(posedge clk) begin
+    if (rst) 
+      csr[`MEPC] <= 0;
+    else if (wen && waddr == `MEPC) 
+      csr[`MEPC] <= wdata;
+  end
+
+  always @(posedge clk) begin
+    if (rst) 
+      csr[`MSTATUS] <= 0;
+    else if (wen && waddr == `MSTATUS) 
+      csr[`MSTATUS] <= wdata;
+  end
+
+  always @(posedge clk) begin
+    if (rst) 
+      csr[`MCAUSE] <= 0;
+    else if (wen && set_cause)
+      csr[`MCAUSE] <= 11;
+    else if (wen && waddr == `MCAUSE) 
+      csr[`MCAUSE] <= wdata;
+  end
+
+  always @(posedge clk) begin
+    if (rst) 
+      csr[`MTVEC] <= 0;
+    else if (wen && waddr == `MTVEC) 
+      csr[`MTVEC] <= wdata;
+  end
+endmodule
+
 module RegisterFile (
+  input clk,
+  input rst,
   input [4:0] Ra,
   input [4:0] Rb,
-  input [2:0] CSRctr,
+  input wen,
+  input [4:0] waddr,
+  input [31:0] wdata,
   output [31:0] busA,
-  output [31:0] busB,
-  input [1023:0] rf_in ,
-  input [127:0] csr // 0:mepc, 1:mstatus, 2:mcause, 3:mtvec
+  output [31:0] busB
 );
-
-  wire [31:0] def;
-  assign def = rf_in[{5'b0,Ra}<<5+:32];
-  MuxKeyWithDefault #(2, 3, 32) d (busA, CSRctr, def, {
-    3'b001, csr[{5'b0,`MTVEC}<<5+:32],
-    3'b100, csr[{5'b0,`MEPC}<<5+:32]
-  });
-  assign busB = rf_in[{5'b0,Rb}<<5+:32];
-
+  
+  reg [31:0] rf[0:31];
+  wire  rfwen[0:31];
+  assign busA = rf[Ra];
+  assign busB = rf[Rb];
+  assign rf[0] = 0;
+  genvar i;
+  generate                     
+    for(i=1; i<16; i=i+1 )begin
+      assign rfwen[i] = wen && waddr == i;
+      Reg #(
+        .WIDTH     (32   ),
+        .RESET_VAL (32'b0)
+      ) u_reg (
+        .clk   (clk   ),
+        .rst   (rst   ),
+        .wen   (rfwen[i]),
+        .din   (wdata ),
+        .dout  (rf[i]   )
+      );
+    end
+  endgenerate
 endmodule
 
 module ContrGen(
@@ -60,11 +123,13 @@ module ContrGen(
   output reg MemtoReg,
   output reg [2:0] MemOp,
   output reg MemWr,
-  output reg [2:0] CSRctr
+  output reg csrALU,
+  output reg csrw,
+  output reg csrpc,
+  output reg csrcause
 );
-reg [21:0] ctr;
-// 3:csrCtr 1:MemWr 1:MemtoReg 3: MemOp 3: branch  1: RegWr 4: ALUctr, 1: ALUAsrc, 2: ALUBsrc[1:0], ExtOp[2:0]
-// 001: ecall, 010: csrrw, 011: csrrs, 100: mret
+reg [22:0] ctr;
+// 1:csrALU 1:csrw 1:csrpc 1:csrcause  1:MemWr 1:MemtoReg 3: MemOp 3: branch  1: RegWr 4: ALUctr, 1: ALUAsrc, 2: ALUBsrc[1:0], ExtOp[2:0]
 always @(posedge clk) begin
   if (rst) 
     IDU_valid <= 0;
@@ -74,13 +139,13 @@ always @(posedge clk) begin
       case (op_6_2)
         5'b00000: begin
           case (func3)
-            3'b000: ctr <= 22'b0000100000010000001000; // lb
-            3'b001: ctr <= 22'b0000100100010000001000; // lh
-            3'b010: ctr <= 22'b0000101000010000001000; // lw
-            3'b100: ctr <= 22'b0000110000010000001000; // lbu
-            3'b101: ctr <= 22'b0000110100010000001000; // lhu
+            3'b000: ctr <= 23'b00000100000010000001000; // lb
+            3'b001: ctr <= 23'b00000100100010000001000; // lh
+            3'b010: ctr <= 23'b00000101000010000001000; // lw
+            3'b100: ctr <= 23'b00000110000010000001000; // lbu
+            3'b101: ctr <= 23'b00000110100010000001000; // lhu
             default: begin 
-	      ctr <= {22{1'b1}};
+	      ctr <= {23{1'b1}};
 `ifndef SYNTHESIS
 	      set_npc_state(3,0); 
 `endif
@@ -89,30 +154,30 @@ always @(posedge clk) begin
         end
         5'b00100: begin
           case (func3)
-            3'b000: ctr <= 22'b0000011100010000001000; // addi
-            3'b001: ctr <= 22'b0000011100010001001000; // slli
-            3'b010: ctr <= 22'b0000011100010010001000; // slti
-            3'b011: ctr <= 22'b0000011100011010001000; // sltiu
-            3'b100: ctr <= 22'b0000011100010100001000; // xori
-            3'b101: ctr <= func7_5 ? 22'b0000011100011101001000 : 22'b0000011100010101001000; // srai
-            3'b110: ctr <= 22'b0000011100010110001000; // ori
-            3'b111: ctr <= 22'b0000011100010111001000; // andi
+            3'b000: ctr <= 23'b00000011100010000001000; // addi
+            3'b001: ctr <= 23'b00000011100010001001000; // slli
+            3'b010: ctr <= 23'b00000011100010010001000; // slti
+            3'b011: ctr <= 23'b00000011100011010001000; // sltiu
+            3'b100: ctr <= 23'b00000011100010100001000; // xori
+            3'b101: ctr <= func7_5 ? 23'b00000011100011101001000 : 23'b00000011100010101001000; // srai
+            3'b110: ctr <= 23'b00000011100010110001000; // ori
+            3'b111: ctr <= 23'b00000011100010111001000; // andi
             default: begin 
-	      ctr <= {22{1'b1}}; 
+	      ctr <= {23{1'b1}}; 
 `ifndef SYNTHESIS
 	      set_npc_state(3,0); 
 `endif
 	    end
           endcase
         end
-        5'b00101: ctr <= 22'b0000011100010000101001; // auipc
+        5'b00101: ctr <= 23'b00000011100010000101001; // auipc
         5'b01000: begin
           case (func3)
-            3'b000: ctr <= 22'b0001000000000000001010; // sb
-            3'b001: ctr <= 22'b0001000100000000001010; // sh
-            3'b010: ctr <= 22'b0001001000000000001010; // sw
+            3'b000: ctr <= 23'b00001000000000000001010; // sb
+            3'b001: ctr <= 23'b00001000100000000001010; // sh
+            3'b010: ctr <= 23'b00001001000000000001010; // sw
             default: begin
-	      ctr <= {22{1'b1}};
+	      ctr <= {23{1'b1}};
 `ifndef SYNTHESIS
 	      set_npc_state(3,0); 
 `endif
@@ -121,57 +186,57 @@ always @(posedge clk) begin
         end
         5'b01100: begin
           case (func3)
-            3'b000: ctr <= func7_5 ? 22'b0000011100011000000111 : 22'b0000011100010000000111; // add
-            3'b001: ctr <= 22'b0000011100010001000111; // sll
-            3'b010: ctr <= 22'b0000011100010010000111; // slt
-            3'b011: ctr <= 22'b0000011100011010000111; // sltu
-            3'b100: ctr <= 22'b0000011100010100000111; // xor
-            3'b101: ctr <= func7_5 ? 22'b0000011100011101000111 : 22'b0000011100010101000111;
-            3'b110: ctr <= 22'b0000011100010110000111; // or
-            3'b111: ctr <= 22'b0000011100010111000111; // and
+            3'b000: ctr <= func7_5 ? 23'b00000011100011000000111 : 23'b00000011100010000000111; // add
+            3'b001: ctr <= 23'b00000011100010001000111; // sll
+            3'b010: ctr <= 23'b00000011100010010000111; // slt
+            3'b011: ctr <= 23'b00000011100011010000111; // sltu
+            3'b100: ctr <= 23'b00000011100010100000111; // xor
+            3'b101: ctr <= func7_5 ? 23'b00000011100011101000111 : 23'b00000011100010101000111;
+            3'b110: ctr <= 23'b00000011100010110000111; // or
+            3'b111: ctr <= 23'b00000011100010111000111; // and
             default: begin
-	      ctr <= {22{1'b1}};
+	      ctr <= {23{1'b1}};
 `ifndef SYNTHESIS
 	      set_npc_state(3,0); 
 `endif
 	    end
           endcase
         end
-        5'b01101: ctr <= 22'b0000011100010011001001; // lui
+        5'b01101: ctr <= 23'b00000011100010011001001; // lui
         5'b11000: begin
           case (func3)
-            3'b000: ctr <= 22'b0000011110000010000011; // beq
-            3'b001: ctr <= 22'b0000011110100010000011; // bne
-            3'b100: ctr <= 22'b0000011111000010000011; // blt
-            3'b110: ctr <= 22'b0000011111001010000011; // bltu
-            3'b101: ctr <= 22'b0000011111100010000011; // bge
-            3'b111: ctr <= 22'b0000011111101010000011; // bgeu
+            3'b000: ctr <= 23'b00000011110000010000011; // beq
+            3'b001: ctr <= 23'b00000011110100010000011; // bne
+            3'b100: ctr <= 23'b00000011111000010000011; // blt
+            3'b110: ctr <= 23'b00000011111001010000011; // bltu
+            3'b101: ctr <= 23'b00000011111100010000011; // bge
+            3'b111: ctr <= 23'b00000011111101010000011; // bgeu
             default: begin 
-	      ctr <= {22{1'b1}}; 
+	      ctr <= {23{1'b1}}; 
 `ifndef SYNTHESIS
 	      set_npc_state(3,0); 
 `endif
 	    end
           endcase
         end
-        5'b11001: ctr <= 22'b0000011101010000110000; // jalr
-        5'b11011: ctr <= 22'b0000011100110000110100; // jal 
+        5'b11001: ctr <= 23'b00000011101010000110000; // jalr
+        5'b11011: ctr <= 23'b00000011100110000110100; // jal 
         5'b11100: begin
           case (func3)
-            3'b001: ctr <= 22'b0100011100000011001000; // csrrw
-            3'b010: ctr <= 22'b0110011100000011001000; // csrrs
+            3'b001: ctr <= 23'b01000011100010011001000; // csrrw
+            3'b010: ctr <= 23'b11000011100010011001000; // csrrs
             3'b000: begin
               if (inst20) begin 
-	      ctr <= {22{1'b1}};
+	        ctr <= {23{1'b1}};
 `ifndef SYNTHESIS
-	      set_npc_state(2,0); 
+	        set_npc_state(2,0); 
 `endif
 	      end //ebreak
-              else if (inst21) begin ctr <= 22'b1000011101000000000111; end // mret
-              else begin ctr <= 22'b0010011101000000101111; end // ecall
+              else if (inst21) begin ctr <= 23'b00100011101000000000111; end // mret
+              else begin ctr <= 23'b01110011101000000101111; end // ecall
             end
             default: begin 
-	      ctr <= {22{1'b1}}; 
+	      ctr <= {23{1'b1}}; 
 `ifndef SYNTHESIS
 	      set_npc_state(3,0); 
 `endif
@@ -179,7 +244,7 @@ always @(posedge clk) begin
           endcase
         end
         default: begin 
-	  ctr <= {22{1'b1}};
+	  ctr <= {23{1'b1}};
 `ifndef SYNTHESIS
 	      set_npc_state(3,0); 
 `endif
@@ -198,7 +263,10 @@ assign  branch = ctr[13:11];
 assign  MemOp = ctr[16:14];
 assign  MemtoReg = ctr[17];
 assign  MemWr = ctr[18];
-assign  CSRctr = ctr[21:19];
+assign  csrcause = ctr[19];
+assign  csrpc = ctr[20];
+assign  csrw = ctr[21];
+assign  csrALU = ctr[22];
 
 endmodule
 
@@ -213,19 +281,22 @@ module ysyx_23060221_Idu(
   output [2:0] memop,
   output memtoreg,
   output memwr,
-  output [31:0] src1,
-  output [31:0] src2,
   output [31:0] imm,
-  input reg [127:0] csr,
-  input reg [1023:0] rf_in,
-  output [2:0] CSRctr,
-  output wen,
+  output regw,
+  output [1:0] csrwaddr,
+  output [1:0] csrraddr,
+  output reg csrALU,
+  output reg csrw,
+  output reg csrpc,
+  output reg csrcause,
   output reg IDU_ready,
   output reg IDU_valid,
   input reg EXU_ready,
   input reg IFU_valid
 );
   wire [2:0] extop;
+  assign csrraddr = (csrcause) ? `MTVEC : ((csrALU) ? csrwaddr : `MEPC);
+
   wire syn_IFU_IDU, syn_IDU_EXU;
   assign syn_IFU_IDU = IFU_valid & IDU_ready;
   assign syn_IDU_EXU = IDU_valid & EXU_ready;
@@ -256,8 +327,11 @@ module ysyx_23060221_Idu(
   .ALUctr(aluctr), 
   .ALUAsrc(aluasrc), 
   .ALUBsrc(alubsrc), 
-  .Regw(wen),
-  .CSRctr(CSRctr),
+  .Regw(regw),
+  .csrcause(csrcause),
+  .csrpc(csrpc),
+  .csrw(csrw),
+  .csrALU(csrALU),
   .branch(branch),
   .MemOp(memop),
   .MemtoReg(memtoreg),
@@ -266,14 +340,13 @@ module ysyx_23060221_Idu(
   .clk(clk),
   .syn(syn_IFU_IDU));
 
-  RegisterFile rf (
-  .Ra(inst[19:15]),
-  .Rb(inst[24:20]),
-  .CSRctr(CSRctr),
-  .busA(src1), 
-  .busB(src2),
-  .rf_in(rf_in),
-  .csr(csr));
-
   ImmGen ig (inst, extop, imm);
+
+  MuxKey #(4, 32, 2) i (csrwaddr, imm, {
+    32'h300, `MSTATUS,
+    32'h305, `MTVEC,
+    32'h341, `MEPC,
+    32'h342, `MCAUSE
+  });
+
 endmodule

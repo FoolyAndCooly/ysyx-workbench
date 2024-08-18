@@ -60,6 +60,16 @@ module BranchCond(
   end
 endmodule
 
+module CsrALU(
+  input [31:0] src1,
+  input csrALU,
+  input [31:0] csrrdata,
+  output [31:0] csrwdata
+);
+  assign csrwdata = (csrALU) ? (csrrdata | src1) : src1;
+endmodule
+
+
 module ysyx_23060221_Exu(
   input         clk      ,
   input         rst      ,
@@ -77,6 +87,10 @@ module ysyx_23060221_Exu(
   input         memwr    ,
   input         memtoreg ,
   output [31:0] wd       ,
+  input         csrALU   ,
+  input         csrw     ,
+  input  [31:0] csrrdata ,
+  output [31:0] csrwdata ,
   output reg    EXU_ready,
   output reg    EXU_valid,
   input  reg    WBU_ready,
@@ -132,17 +146,23 @@ always @(posedge clk) begin
 end
 
 wire [31:0] a;
-wire [31:0] b;
+wire [31:0] b1;
 
 MuxKey #(2, 1, 32)  i1 (a, aluasrc, {
   1'b0, src1,
   1'b1, pc
 });
-MuxKey #(3, 2, 32) i2 (b, alubsrc, {
+
+wire [31:0] b = (csrw) ? csrrdata : b1;
+
+MuxKey #(3, 2, 32) i2 (b1, alubsrc, {
   2'b00, src2,
   2'b01, imm,
   2'b10, 32'd4
 });
+
+CsrALU csralu(a, csrALU, csrrdata, csrwdata);
+
 wire less, zero, memfinish;
 
 assign memfinish = (bvalid & bready) | (rvalid & rready);

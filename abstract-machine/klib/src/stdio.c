@@ -16,7 +16,7 @@ int printf(const char *fmt, ...) {
   while(*p){putch(*p);p++;}
   return ret;
   }
-void itoa(char* str,uint32_t num){
+void myitoa(char* str,uint32_t num){
   char buf[256]={0};
   int i=0,j=0;
   do{
@@ -55,7 +55,7 @@ int vsprintf(char *out, const char *fmt, va_list ap) {
     switch(*++fmt){
       case 'd':
       	i=va_arg(ap,uint32_t);
-      	itoa(buff,i);
+      	myitoa(buff,i);
       	*out='\0';
       	strcat(out,buff);
       	out=out+strlen(buff);

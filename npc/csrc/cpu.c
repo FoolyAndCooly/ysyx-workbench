@@ -44,8 +44,8 @@ void ipc_display(){
 
 extern "C" void set_npc_state(int state, int info){
   npc_state.state = state;
-  npc_state.halt_pc = top->rootp->ysyxSoCTop__DOT__dut__DOT__asic__DOT__cpu__DOT__cpu__DOT__pc;
-  npc_state.halt_ret = top->rootp->ysyxSoCTop__DOT__dut__DOT__asic__DOT__cpu__DOT__cpu__DOT__rf[10];
+  npc_state.halt_pc = top->rootp->ysyxSoCTop__DOT__dut__DOT__asic__DOT__cpu__DOT__cpu__DOT__wbu__DOT__pg__DOT__pc;
+  npc_state.halt_ret = top->rootp->ysyxSoCTop__DOT__dut__DOT__asic__DOT__cpu__DOT__cpu__DOT__rf__DOT__rf[10];
   if (state == 3) {
     if (info == 0) printf("decode error\n");
     if (info == 1) printf("mem error\n");
@@ -88,7 +88,7 @@ static void trace_and_difftest(uint32_t pre_pc) {
 void execute(uint64_t n, int type) {
   uint32_t pre_pc;
   for (;n > 0; n --) {
-    pre_pc = top->rootp->ysyxSoCTop__DOT__dut__DOT__asic__DOT__cpu__DOT__cpu__DOT__pc;
+    pre_pc = top->rootp->ysyxSoCTop__DOT__dut__DOT__asic__DOT__cpu__DOT__cpu__DOT__wbu__DOT__pg__DOT__pc;
     if (type) {
       reset_flag = 0;
       do{
