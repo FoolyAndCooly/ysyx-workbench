@@ -103,30 +103,23 @@ extern "C" void cache_write(uint32_t index, uint32_t data, uint32_t tag, uint32_
   cache[index].tag = tag;
 }
 
-extern "C" int pmem_read(int addr, int len) {
-  // printf("read 0x%08x\n", (uint32_t)addr);
-  // printf("read 0x%08x   val: 0x0%08x\n", (uint32_t)addr, *(uint32_t*)(guest_to_host(addr & ~0x3u)));
+extern "C" int pmem_read(int raddr) {
+  int addr = raddr & ~0x3;
+  printf("read 0x%08x 0x%08x\n", (uint32_t)addr, *(uint32_t*)(guest_to_host(addr)));
   int offset = (uint32_t)addr - RTC_ADDR;
   if (offset == 0 || offset == 4) {
     uint64_t us =  get_time();
     if (offset == 0) return us;
     else return us >> 32;
   }
-  switch (len) {
-    case 1: return *(uint8_t *)(guest_to_host(addr));
-    case 2: return *(uint16_t*)(guest_to_host(addr));
-    case 4: return *(uint32_t*)(guest_to_host(addr));
-    default: return 0;
-  }
+  return *(uint32_t*)(guest_to_host(addr));
 }
 
-extern "C" void pmem_write(int waddr, char mask, int data) {
-  // printf("write %08x, data %08x\n", waddr, data);
-  uint8_t* addr = guest_to_host(waddr);
+extern "C" void pmem_write(int waddr, char wstrb, int data) {
+  printf("write %08x, wstrb %08x, data %08x\n", waddr, wstrb, data);
+  uint8_t* addr = guest_to_host(waddr & ~0x3);
   if ((uint32_t)waddr == SERIAL_PORT) {putchar((char)data);}
-  switch (mask) {
-    case 1: *(uint8_t  *)addr = data; return;
-    case 3: *(uint16_t *)addr = data; return;
-    case 15: *(uint32_t *)addr = data; return;
+  for (int i=0; i < 4; i++) {
+      *(addr + i) = ((wstrb>>i) & 0x1) ? ((data >> (i<<3)) & 0xff) : *(addr + i);
   }
 }

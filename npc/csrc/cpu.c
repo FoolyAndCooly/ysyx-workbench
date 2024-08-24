@@ -3,7 +3,11 @@
 #include <common.h>
 #include <memory.h>
 #include <top.h>
+#include <getport.h>
+
+#ifdef SOC
 #include <nvboard.h>
+#endif
 
 #define CYCLE 1
 
@@ -44,8 +48,8 @@ void ipc_display(){
 
 extern "C" void set_npc_state(int state, int info){
   npc_state.state = state;
-  npc_state.halt_pc = top->rootp->ysyxSoCTop__DOT__dut__DOT__asic__DOT__cpu__DOT__cpu__DOT__wbu__DOT__pg__DOT__pc;
-  npc_state.halt_ret = top->rootp->ysyxSoCTop__DOT__dut__DOT__asic__DOT__cpu__DOT__cpu__DOT__rf__DOT__rf[10];
+  npc_state.halt_pc = PC;
+  npc_state.halt_ret = GPR10;
   if (state == 3) {
     if (info == 0) printf("decode error\n");
     if (info == 1) printf("mem error\n");
@@ -55,9 +59,6 @@ extern "C" void set_npc_state(int state, int info){
 
 void cycle(){
   top->clock = 0;
-  // printf("m_trace %d\n", m_trace);
-  // top->inst = pmem_read(top->pc,4);
-  // printf("pc : %08x\n", top->rootp->top__DOT__pc);
   top->eval();
   m_trace->dump(sim_time);
   sim_time++;
@@ -71,7 +72,6 @@ void cycle(){
 }
 
 void reset() {
-  
   top->reset = 1;
   for (int i = 0; i < 16; i++) cycle();
   top->reset = 0;
@@ -88,15 +88,23 @@ static void trace_and_difftest(uint32_t pre_pc) {
 void execute(uint64_t n, int type) {
   uint32_t pre_pc;
   for (;n > 0; n --) {
-    pre_pc = top->rootp->ysyxSoCTop__DOT__dut__DOT__asic__DOT__cpu__DOT__cpu__DOT__wbu__DOT__pg__DOT__pc;
+    pre_pc = PC;
     if (type) {
       reset_flag = 0;
       do{
         cycle();
+#ifdef SOC
 	nvboard_update();
-      } while(!top->rootp->ysyxSoCTop__DOT__dut__DOT__asic__DOT__cpu__DOT__cpu__DOT__WBU_valid);
+#endif
+      } while(!NEXT);
     }
-    else {do{cycle(); nvboard_update();} while(0);}
+    else {
+      do{
+        cycle(); 
+#ifdef SOC
+	nvboard_update();
+#endif
+      } while(0);}
     inst_cnt++;
     // if (reset_flag) {reset_difftest();}
     // else if (type) trace_and_difftest(pre_pc);

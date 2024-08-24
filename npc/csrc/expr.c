@@ -6,7 +6,6 @@
  */
 #include <regex.h>
 
-extern "C" int pmem_read(int addr, int len);
 uint32_t reg_str2val(const char *s, bool *success);
 
 enum {
@@ -230,7 +229,7 @@ uint32_t eval(int p, int q) {
       uint32_t val = eval(op + 1, q);
       switch (tokens[op].type) {
         case TK_MINUS: return -val;
-	case TK_P: return pmem_read(val, 4);
+	case TK_P: return pmem_read(val);
       }
     }
   }

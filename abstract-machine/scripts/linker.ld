@@ -3,7 +3,7 @@ PHDRS { text PT_LOAD; data PT_LOAD; }
 
 SECTIONS {
   /* _pmem_start and _entry_offset are defined in LDFLAGS */
-  . = _mrom_start + _entry_offset;
+  . = _pmem_start + _entry_offset;
   .text : {
     *(entry)
     *(.text*)
@@ -24,11 +24,9 @@ SECTIONS {
     *(.sbss*)
     *(.scommon)
   }
-  _stack_top = 0x0f001000;
-  . = _stack_top + 0x0ff0;
+  _stack_top = 0x80010000;
+  . = _stack_top + 0xfff0;
   _stack_pointer = .;
-  end = .;
-  _end = .;
-  _heap_start = 0x0f000000;
-  _heap_end = _stack_pointer;
+  _heap_start = _data;
+  _heap_end = _stack_top;
 }

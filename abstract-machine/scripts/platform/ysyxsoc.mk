@@ -14,7 +14,8 @@ LDFLAGS   += -T $(AM_HOME)/am/src/riscv/ysyxsoc/linker.ld
 LDFLAGS   += --gc-sections -e _start
 CFLAGS += -DMAINARGS=\"$(mainargs)\"
 CFLAGS += -I$(AM_HOME)/am/src/riscv/ysyxsoc/include
-YSYXSOCFLAGS += 
+YSYXSOCFLAGS += -b
+PLATFORM=SOC
 .PHONY: $(AM_HOME)/am/src/riscv/ysyxsoc/trm.c
 
 image: $(IMAGE).elf
@@ -23,4 +24,4 @@ image: $(IMAGE).elf
 	# @$(OBJCOPY) -S --set-section-flags .bss=alloc,contents -O binary $(IMAGE).elf $(IMAGE).bin
 	@$(OBJCOPY) -S -O binary -j .fsbl -j .ssbl -j .text -j .rodata -j .data $(IMAGE).elf $(IMAGE).bin
 run: image
-	$(MAKE) -C $(NPC_HOME) run ARGS="$(YSYXSOCFLAGS)" IMG=$(IMAGE).bin
+	$(MAKE) -C $(NPC_HOME) run ARGS="$(YSYXSOCFLAGS)" IMG=$(IMAGE).bin PLATFORM=$(PLATFORM)

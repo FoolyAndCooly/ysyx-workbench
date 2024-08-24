@@ -4,6 +4,7 @@
 #include <dlfcn.h>
 #include <memory.h>
 #include <top.h>
+#include <getport.h>
 
 static char *ref_so_file;
 static long img_size;
@@ -38,7 +39,7 @@ void reset_difftest() {
   ref_difftest_memcpy(CONFIG_MBASE, guest_to_host(CONFIG_MBASE), img_size, DIFFTEST_TO_REF);
   CPU_state cpu;
   for (int i = 0; i < 32; i++) {
-    cpu.gpr[i] = top->rootp->ysyxSoCTop__DOT__dut__DOT__asic__DOT__cpu__DOT__cpu__DOT__rf__DOT__rf[i];
+    cpu.gpr[i] = GPRi;
   }
   cpu.pc = 0x20000000;
   ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);

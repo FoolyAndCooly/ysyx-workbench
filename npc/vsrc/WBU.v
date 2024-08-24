@@ -23,7 +23,11 @@ module PC_Gen(
 
   Reg #(
     .WIDTH     (32   ),
+`ifdef SOC
     .RESET_VAL (32'h30000000)
+`else
+    .RESET_VAL (32'h80000000)
+`endif
   ) u_reg (
     .clk   (clk   ),
     .rst   (rst   ),

@@ -1,11 +1,16 @@
+ifeq ($(PLATFORM),SOC)
 TOPNAME = ysyxSoCTop
+else
+TOPNAME = npc
+endif
 
 NXDC_FILES = constr/$(TOPNAME).nxdc
 WORK_DIR = $(shell pwd)
-IMG = $(WORK_DIR)/code/char-test.bin
 INC_PATH += $(WORK_DIR)/include
+ifeq ($(PLATFORM),SOC)
 INV_PATH += $(abspath $(WORK_DIR)/../ysyxSoC/perip/uart16550/rtl)
 INV_PATH += $(abspath $(WORK_DIR)/../ysyxSoC/perip/spi/rtl)
+endif
 LIB_SO = $(NEMU_HOME)/build/riscv32-nemu-interpreter-so
 
 VERILATOR = verilator
@@ -16,10 +21,17 @@ BUILD_DIR = $(WORK_DIR)/build
 OBJ_DIR = $(BUILD_DIR)/obj_dir
 BIN = $(BUILD_DIR)/$(TOPNAME)
 
+ifeq ($(PLATFORM),SOC)
+# rules for NVBoard
+include $(NVBOARD_HOME)/scripts/nvboard.mk
+
 SRC_AUTO_BIND = $(abspath $(BUILD_DIR)/auto_bind.cpp)
 
 $(SRC_AUTO_BIND): $(NXDC_FILES)
 	python3 $(NVBOARD_HOME)/scripts/auto_pin_bind.py $^ $@
+
+CSRCS += $(SRC_AUTO_BIND)
+endif
 
 default: $(BIN)
 
@@ -28,24 +40,24 @@ $(shell mkdir -p $(BUILD_DIR))
 # project source
 
 VSRCS += $(shell find $(abspath ./vsrc) -name "*.v")
+ifeq ($(PLATFORM),SOC)
 VSRCS += $(shell find $(abspath ../ysyxSoC/perip) -name "*.v")
 VSRCS += $(shell find $(abspath ../ysyxSoC/build) -name "*.v")
+endif
 CSRCS += $(shell find $(abspath ./csrc) -name "*.c" -or -name "*.cc" -or -name "*.cpp")
 OSRCS += $(shell find $(abspath ./build/obj_dir) -name "*.o")
-CSRCS += $(SRC_AUTO_BIND)
-
-# rules for NVBoard
-include $(NVBOARD_HOME)/scripts/nvboard.mk
 
 # rules for verilator
 INCFLAGS += $(addprefix -I, $(INC_PATH))
+INCFLAGS += -D$(PLATFORM)
 INVFLAGS += $(addprefix -I, $(INV_PATH))
+INVFLAGS += -D$(PLATFORM)
 CXXFLAGS +=  $(INCFLAGS) -DTOP_NAME="\"V$(TOPNAME)\""
 LDFLAGS += -lreadline
 
 $(BIN): $(VSRCS) $(CSRCS) $(NVBOARD_ARCHIVE)
 	@rm -rf $(OBJ_DIR)
-	@$(VERILATOR) $(VERILATOR_CFLAGS) \
+	@$(VERILATOR) $(VERILATOR_CFLAGS)\
 		--top-module $(TOPNAME) $^ \
 		$(addprefix -CFLAGS , $(CXXFLAGS)) $(addprefix -LDFLAGS , $(LDFLAGS)) \
 		$(INVFLAGS) \
@@ -55,8 +67,7 @@ $(BIN): $(VSRCS) $(CSRCS) $(NVBOARD_ARCHIVE)
 all: default
 
 run: $(BIN)
-	# @$^ -bd $(LIB_SO) $(IMG) 
-	@$^ -b $(IMG)
+	@$^ $(ARGS) $(IMG)
 	$(call git_commit, "sim RTL")
 
 clean:
