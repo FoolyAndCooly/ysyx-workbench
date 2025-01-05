@@ -3,7 +3,7 @@ PHDRS { fsbl PT_LOAD; ssbl PT_LOAD; text PT_LOAD; rodata PT_LOAD; data PT_LOAD; 
 
 MEMORY {
   flash : ORIGIN = 0x30000000, LENGTH = 16M
-  sdram : ORIGIN = 0xa0000000, LENGTH = 4M
+  sdram : ORIGIN = 0xa0000000, LENGTH = 16M
 }
 
 SECTIONS {
@@ -54,8 +54,8 @@ SECTIONS {
     *(.scommon)
   } > sdram AT> flash
 
-  _stack_top = 0xa0200000;
-  . = _stack_top + 0x1ffff0;
+  _stack_top = ALIGN(0x1000);
+  . = _stack_top + 0x8000;
   _stack_pointer = .;
-  _heap_start = _edata_virt;
+  _heap_start = ALIGN(0x1000);
 }

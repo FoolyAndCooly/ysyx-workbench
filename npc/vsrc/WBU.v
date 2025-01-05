@@ -21,20 +21,16 @@ module PC_Gen(
   MuxKey #(2, 1, 32) p2 (t2, PCBsrc, {1'b0, pc,   1'b1, rs1});
   assign tmp2 = (csrpc) ? csrrdata : t2;
 
-  Reg #(
-    .WIDTH     (32   ),
-`ifdef SOC
-    .RESET_VAL (32'h30000000)
-`else
-    .RESET_VAL (32'h80000000)
-`endif
-  ) u_reg (
-    .clk   (clk   ),
-    .rst   (rst   ),
-    .wen   (syn),
-    .din   (tmp1 + tmp2 ),
-    .dout  (pc    )
-  );
+  always @(posedge clk) begin
+    if (rst) begin 
+  `ifdef SOC
+      pc <= 32'h30000000;
+  `else
+      pc <= 32'h80000000;
+  `endif
+    end
+    else if (syn) pc <= tmp1 + tmp2;
+  end
 
 endmodule
 

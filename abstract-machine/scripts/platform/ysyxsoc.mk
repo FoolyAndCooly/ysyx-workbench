@@ -12,6 +12,7 @@ AM_SRCS := riscv/ysyxsoc/start.S \
 CFLAGS    += -fdata-sections -ffunction-sections
 LDFLAGS   += -T $(AM_HOME)/am/src/riscv/ysyxsoc/linker.ld
 LDFLAGS   += --gc-sections -e _start
+LDFLAGS   += --print-map
 CFLAGS += -DMAINARGS=\"$(mainargs)\"
 CFLAGS += -I$(AM_HOME)/am/src/riscv/ysyxsoc/include
 YSYXSOCFLAGS += -b
@@ -21,7 +22,7 @@ PLATFORM=SOC
 image: $(IMAGE).elf
 	@$(OBJDUMP) -d $(IMAGE).elf > $(IMAGE).txt
 	@echo + OBJCOPY "->" $(IMAGE_REL).bin
-	# @$(OBJCOPY) -S --set-section-flags .bss=alloc,contents -O binary $(IMAGE).elf $(IMAGE).bin
-	@$(OBJCOPY) -S -O binary -j .fsbl -j .ssbl -j .text -j .rodata -j .data $(IMAGE).elf $(IMAGE).bin
+	@$(OBJCOPY) -S -O binary -j .fsbl -j .ssbl -j .text -j .rodata -j .data -j .data.extra $(IMAGE).elf $(IMAGE).bin
+
 run: image
 	$(MAKE) -C $(NPC_HOME) run ARGS="$(YSYXSOCFLAGS)" IMG=$(IMAGE).bin PLATFORM=$(PLATFORM)

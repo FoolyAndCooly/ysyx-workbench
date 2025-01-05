@@ -5,10 +5,14 @@
 
 #if !defined(__ISA_NATIVE__) || defined(__NATIVE_USE_KLIB__)
 
+char buf_printf[2048];
+char buf_myitoa[256];
+char buf_itox[256];
+char buf_vsprintf[1024];
+
 int printf(const char *fmt, ...) {
   int ret=-1;
-  char buff[2048]={0};
-  char *p=buff;
+  char *p = buf_printf;
   va_list ap;
   va_start(ap, fmt);
   ret=vsprintf(p, fmt, ap);
@@ -17,7 +21,7 @@ int printf(const char *fmt, ...) {
   return ret;
   }
 void myitoa(char* str,uint32_t num){
-  char buf[256]={0};
+  char* buf = buf_myitoa;
   int i=0,j=0;
   do{
     buf[i++]=num%10+'0';
@@ -30,7 +34,7 @@ void myitoa(char* str,uint32_t num){
   str[j]='\0';
 }
 void itox(char* str,uint32_t num){
-  char buf[256]={0};
+  char* buf = buf_itox;
   char map[16]={'0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'};
   int i=0,j=0;
   do{
@@ -48,7 +52,7 @@ int vsprintf(char *out, const char *fmt, va_list ap) {
   char *t;
   char c;
   t=out;
-  char *s,buff[1024]={0};
+  char *s, *buff = buf_vsprintf;
   while(*fmt != '\0'){
   if(*fmt != '%'){*out++ = *fmt;}
   else{

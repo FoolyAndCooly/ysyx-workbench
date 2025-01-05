@@ -89,6 +89,7 @@ void execute(uint64_t n, int type) {
   uint32_t pre_pc;
   for (;n > 0; n --) {
     pre_pc = PC;
+    //printf("pc: %08x\n", PC);
     if (type) {
       reset_flag = 0;
       do{

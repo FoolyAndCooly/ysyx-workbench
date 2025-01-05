@@ -47,7 +47,6 @@ static int cmd_cyc(char *args) {
 }
 
 static int cmd_si(char *args) {
-  printf("%08x\n", PC);
   if (args != NULL) {
     cpu_exec(atoi(args), 1);
   } else {

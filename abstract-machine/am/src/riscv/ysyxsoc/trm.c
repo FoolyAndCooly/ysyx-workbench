@@ -4,17 +4,6 @@
 #include <string.h>
 #include <assert.h>
 
-#define PSRAM_START 0x80000000
-#define FLASH_START 0x30000000
-#define UART_START  0x10000000
-#define LCR 3
-#define LSB 0
-#define MSB 1
-#define FCR 2
-#define IER 1
-#define DEBUG2 12
-#define FULL 16
-
 extern char _sssbl_virt;
 extern char _essbl_virt;
 extern char _sssbl_phys;
@@ -28,6 +17,11 @@ extern char _sdata_virt;
 extern char _edata_virt;
 extern char _sdata_phys;
 
+extern char __fsymtab_start;
+extern char _sdata_extra_phys;
+extern char __am_apps_data_end;
+
+
 extern char _heap_start;
 extern char _stack_top;
 extern char _pmem_start;
@@ -39,7 +33,7 @@ void _fsbl(void) __attribute__((section(".fsbl")));
 void _ssbl(void) __attribute__((section(".ssbl")));
 
 
-Area heap = RANGE(&_heap_start, &_stack_top);
+Area heap = RANGE(&_heap_start, SDRAM_END);
 #ifndef MAINARGS
 #define MAINARGS ""
 #endif
@@ -85,12 +79,14 @@ void _fsbl() {
 void _ssbl() {
   bootload(&_stext_virt, &_stext_phys, &_etext_virt - &_stext_virt);
   bootload(&_srodata_virt, &_srodata_phys, &_erodata_virt - &_srodata_virt);
+#ifdef __fsymtab_start
+  bootload(&__fsymtab_start, &_sdata_extra_phys, &__am_apps_data_end - &__fsymtab_start);
+#endif
   bootload(&_sdata_virt, &_sdata_phys, &_edata_virt - &_sdata_virt);
   _trm_init();
 }
 
 void _trm_init() {
-  // memcpy(&_sdata, &_erodata + 1, &_edata - &_sdata);
   uart_init();
   int ret = main(mainargs);
   halt(ret);

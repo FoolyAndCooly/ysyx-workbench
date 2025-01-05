@@ -4,6 +4,18 @@
 #define RTC_ADDR        (DEVICE_BASE + 0x0000048)
 #define UART_RX_ADDR    0x10000000
 #define KEYBOARD_ADDR   0x10011000
+#define PSRAM_START 0x80000000
+#define FLASH_START 0x30000000
+#define SDRAM_END   (0xa0000000 + 0x01000000)
+#define UART_START  0x10000000
+#define LCR 3
+#define LSB 0
+#define MSB 1
+#define FCR 2
+#define IER 1
+#define DEBUG2 12
+#define FULL 16
+
 
 #include <stdint.h>
 

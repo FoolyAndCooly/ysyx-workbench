@@ -74,10 +74,18 @@ assign io_slave_rdata    = 0;
 assign io_slave_rlast    = 0; 
 assign io_slave_rid      = 0; 
 
-
 reg IFU_valid, IFU_ready, IDU_ready, IDU_valid, EXU_ready, EXU_valid, WBU_ready, WBU_valid;
 
 reg [31:0] pc;
+
+// always @(posedge clock) begin
+//   $display("pc       :%08x", pc      );
+//   $display("IFU_valid: %d", IFU_valid);
+//   $display("IDU_valid: %d", IDU_valid);
+//   $display("EXU_valid: %d", EXU_valid);
+//   $display("WBU_valid: %d", WBU_valid);
+// end
+
 
 wire [31:0] inst;
 wire [31:0] res;
