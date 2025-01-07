@@ -11,8 +11,6 @@
 
 #define CYCLE 1
 
-int reset_flag;
-
 static long long cycle_cnt;
 static long long inst_cnt;
 static long long ifu_cnt;
@@ -84,16 +82,16 @@ static void trace_and_difftest(uint32_t pre_pc) {
   difftest_step(pre_pc);
 }
 
-
+/* type 0 : run a cycle type 1: run a inst */
 void execute(uint64_t n, int type) {
   uint32_t pre_pc;
+  int reset_flag = 0;
   for (;n > 0; n --) {
     pre_pc = PC;
-    //printf("pc: %08x\n", PC);
     if (type) {
-      reset_flag = 0;
       do{
         cycle();
+        if (RESET) reset_flag = 1;
 #ifdef SOC
 	nvboard_update();
 #endif
@@ -107,15 +105,15 @@ void execute(uint64_t n, int type) {
 #endif
       } while(0);}
     inst_cnt++;
-    // if (reset_flag) {reset_difftest();}
-    // else if (type) trace_and_difftest(pre_pc);
+#ifdef DIFFTEST
+    if (reset_flag) {reset_difftest();}
+    else if (type) trace_and_difftest(pre_pc);
+#endif
     if (npc_state.state != NPC_RUNNING) break;
   }
 }
 
-/* Simulate how the CPU works. */
 void cpu_exec(uint64_t n, int type) {
-  // g_print_step = (n < MAX_INST_TO_PRINT);
   switch (npc_state.state) {
     case NPC_END: case NPC_ABORT:
       printf("Program execution has ended. To restart the program, exit NPC and run again.\n");

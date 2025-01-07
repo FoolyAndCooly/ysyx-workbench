@@ -219,3 +219,8 @@ config RT_CHECK
   default y
 
 endmenu
+
+config SOC
+    bool "Enable SoC Support"
+    default n
+

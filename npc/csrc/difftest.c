@@ -41,7 +41,11 @@ void reset_difftest() {
   for (int i = 0; i < 32; i++) {
     cpu.gpr[i] = GPRi;
   }
+#ifdef SOC
   cpu.pc = 0x20000000;
+#else
+  cpu.pc = 0x80000000;
+#endif
   ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
 }
 

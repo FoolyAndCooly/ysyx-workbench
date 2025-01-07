@@ -4,6 +4,7 @@ else
 TOPNAME = npc
 endif
 
+DIFF_TEST ?= true
 NXDC_FILES = constr/$(TOPNAME).nxdc
 WORK_DIR = $(shell pwd)
 INC_PATH += $(WORK_DIR)/include
@@ -52,6 +53,10 @@ INCFLAGS += $(addprefix -I, $(INC_PATH))
 INCFLAGS += -D$(PLATFORM)
 INVFLAGS += $(addprefix -I, $(INV_PATH))
 INVFLAGS += -D$(PLATFORM)
+ifeq ($(DIFF_TEST),true)
+INCFLAGS += -DDIFFTEST
+INVFLAGS += -DDIFFTEST
+endif
 CXXFLAGS +=  $(INCFLAGS) -DTOP_NAME="\"V$(TOPNAME)\""
 LDFLAGS += -lreadline
 
@@ -67,8 +72,12 @@ $(BIN): $(VSRCS) $(CSRCS) $(NVBOARD_ARCHIVE)
 all: default
 
 run: $(BIN)
+ifeq ($(DIFF_TEST),true)
+	@$^ $(ARGS) -d $(LIB_SO) $(IMG)
+else
 	@$^ $(ARGS) $(IMG)
 	$(call git_commit, "sim RTL")
+endif
 
 clean:
 	rm -rf $(BUILD_DIR)

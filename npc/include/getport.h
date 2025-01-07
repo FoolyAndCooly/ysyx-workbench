@@ -8,5 +8,6 @@
 #define GPR10 top->rootp->npc__DOT__cpu__DOT__rf__DOT__rf[10]
 #define GPRi top->rootp->npc__DOT__cpu__DOT__rf__DOT__rf[i]
 #define NEXT top->rootp->npc__DOT__cpu__DOT__WBU_valid
+#define RESET top->rootp->reset
 #endif
 

@@ -20,7 +20,6 @@ bool difftest_checkregs(CPU_state *ref_r, uint32_t pc) {
   for (int i = 0; i < 32; i++) {
     if (GPRi != ref_r->gpr[i]) {
       printf("%d th reg is wrong\nref reg :0x%08x\ncpu reg :0x%08x\n",i,ref_r->gpr[i],GPRi);
-      // printf("pc: 0x%08x\n", pc);
       return false;
     }
   }
