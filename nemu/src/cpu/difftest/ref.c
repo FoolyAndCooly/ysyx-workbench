@@ -47,6 +47,10 @@ __EXPORT void difftest_exec(uint64_t n) {
   cpu_exec(n); 
 }
 
+//__EXPORT uint32_t difftest_memget(uint32_t addr, uint32_t len) {
+//  pmem_read(addr, len);
+//}
+
 __EXPORT void difftest_raise_intr(word_t NO) {
   assert(0);
 }

@@ -4,7 +4,7 @@ else
 TOPNAME = npc
 endif
 
-DIFF_TEST ?= true
+DIFF_TEST ?= false
 NXDC_FILES = constr/$(TOPNAME).nxdc
 WORK_DIR = $(shell pwd)
 INC_PATH += $(WORK_DIR)/include

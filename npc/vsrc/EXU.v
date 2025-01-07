@@ -18,16 +18,16 @@ module Alu(
   always @(*) begin
     case(ctr[2:0])
       3'b000: res = ctr[3] ? (a - b) : (a + b);
-      3'b001: res = a << b[5:0];
+      3'b001: res = a << b[4:0];
       3'b010: res = a - b; 
       3'b011: res = b;
       3'b100: res = a ^ b;
       3'b101: begin
         if(ctr[3]) begin
-	  res = $signed(a) >>> b[5:0];
+	  res = $signed(a) >>> b[4:0];
 	end
 	else begin
-	  res = a >> b[5:0];
+	  res = a >> b[4:0];
 	end
       end
       3'b110: res = a | b;
