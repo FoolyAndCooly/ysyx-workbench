@@ -1,5 +1,5 @@
 `ifndef SYNTHESIS
-import "DPI-C" function void ifu_count();
+import "DPI-C" function void ifu_count(input int addr);
 `endif
 module ysyx_23060221_Ifu(
   input             clk  ,
@@ -56,7 +56,7 @@ always @(posedge clk) begin
   else if (memfinish) begin
     IFU_valid <= 1;
 `ifndef SYNTHESIS
-    ifu_count();
+    ifu_count(pc);
 `endif
   end
 end

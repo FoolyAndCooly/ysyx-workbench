@@ -5,7 +5,12 @@
 
 `ifndef SYNTHESIS
 import "DPI-C" function void set_npc_state(input byte state, input byte info);
+import "DPI-C" function void ali_count(input int addr);
+import "DPI-C" function void lsi_count(input int addr);
+import "DPI-C" function void cfi_count(input int addr);
+import "DPI-C" function void csr_count(input int addr);
 `endif
+
 module ImmGen(
   input [31:0] inst,
   input [2:0] ExtOp,
@@ -127,6 +132,9 @@ module ContrGen(
   output reg csrw,
   output reg csrpc,
   output reg csrcause
+`ifndef SYNTHESIS
+  ,input [31:0] pc
+`endif
 );
 reg [22:0] ctr;
 // 1:csrALU 1:csrw 1:csrpc 1:csrcause  1:MemWr 1:MemtoReg 3: MemOp 3: branch  1: RegWr 4: ALUctr, 1: ALUAsrc, 2: ALUBsrc[1:0], ExtOp[2:0]
@@ -138,6 +146,9 @@ always @(posedge clk) begin
       IDU_valid <= 1;
       case (op_6_2)
         5'b00000: begin
+`ifndef SYNTHESIS
+          lsi_count(pc);
+`endif
           case (func3)
             3'b000: ctr <= 23'b00000100000010000001000; // lb
             3'b001: ctr <= 23'b00000100100010000001000; // lh
@@ -153,6 +164,9 @@ always @(posedge clk) begin
           endcase
         end
         5'b00100: begin
+`ifndef SYNTHESIS
+          ali_count(pc);
+`endif
           case (func3)
             3'b000: ctr <= 23'b00000011100010000001000; // addi
             3'b001: ctr <= 23'b00000011100010001001000; // slli
@@ -170,8 +184,16 @@ always @(posedge clk) begin
 	    end
           endcase
         end
-        5'b00101: ctr <= 23'b00000011100010000101001; // auipc
+        5'b00101: begin
+`ifndef SYNTHESIS
+          ali_count(pc);
+`endif
+	ctr <= 23'b00000011100010000101001; // auipc
+	end
         5'b01000: begin
+`ifndef SYNTHESIS
+          lsi_count(pc);
+`endif
           case (func3)
             3'b000: ctr <= 23'b00001000000000000001010; // sb
             3'b001: ctr <= 23'b00001000100000000001010; // sh
@@ -185,6 +207,9 @@ always @(posedge clk) begin
           endcase
         end
         5'b01100: begin
+`ifndef SYNTHESIS
+          ali_count(pc);
+`endif
           case (func3)
             3'b000: ctr <= func7_5 ? 23'b00000011100011000000111 : 23'b00000011100010000000111; // add
             3'b001: ctr <= 23'b00000011100010001000111; // sll
@@ -202,8 +227,16 @@ always @(posedge clk) begin
 	    end
           endcase
         end
-        5'b01101: ctr <= 23'b00000011100010011001001; // lui
+        5'b01101: begin
+`ifndef SYNTHESIS
+        ali_count(pc);
+`endif
+	ctr <= 23'b00000011100010011001001; // lui
+	end
         5'b11000: begin
+`ifndef SYNTHESIS
+          cfi_count(pc);
+`endif
           case (func3)
             3'b000: ctr <= 23'b00000011110000010000011; // beq
             3'b001: ctr <= 23'b00000011110100010000011; // bne
@@ -219,9 +252,22 @@ always @(posedge clk) begin
 	    end
           endcase
         end
-        5'b11001: ctr <= 23'b00000011101010000110000; // jalr
-        5'b11011: ctr <= 23'b00000011100110000110100; // jal 
+        5'b11001: begin
+`ifndef SYNTHESIS
+          cfi_count(pc);
+`endif
+	ctr <= 23'b00000011101010000110000; // jalr
+	end
+        5'b11011: begin 
+`ifndef SYNTHESIS
+          cfi_count(pc);
+`endif
+	ctr <= 23'b00000011100110000110100; // jal 
+	end
         5'b11100: begin
+`ifndef SYNTHESIS
+          csr_count(pc);
+`endif
           case (func3)
             3'b001: ctr <= 23'b01000011100010011001000; // csrrw
             3'b010: ctr <= 23'b11000011100010011001000; // csrrs
@@ -293,6 +339,9 @@ module ysyx_23060221_Idu(
   output reg IDU_valid,
   input reg EXU_ready,
   input reg IFU_valid
+`ifndef SYNTHESIS
+  ,input [31:0] pc
+`endif
 );
   wire [2:0] extop;
   assign csrraddr = (csrcause) ? `MTVEC : ((csrALU) ? csrwaddr : `MEPC);
@@ -338,7 +387,11 @@ module ysyx_23060221_Idu(
   .MemWr(memwr),
   .IDU_valid(IDU_valid),
   .clk(clk),
-  .syn(syn_IFU_IDU));
+  .syn(syn_IFU_IDU)
+`ifndef SYNTHESIS
+  ,.pc(pc)
+`endif
+  );
 
   ImmGen ig (inst, extop, imm);
 

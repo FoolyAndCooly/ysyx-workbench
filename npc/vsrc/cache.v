@@ -4,6 +4,11 @@
 `define TRANS 3'd3
 `define DATA 3'd4
 
+`ifndef SYNTHESIS
+import "DPI-C" function void hit_count(input int addr);
+import "DPI-C" function void miss_count(input int addr);
+`endif
+
 module cache(
   input             clk  ,
   input             rst  ,
@@ -54,7 +59,13 @@ module cache(
   always @(posedge clk) begin
     case (state) 
       `IDLE: state <= (in_arvalid & in_arready) ? `CHECK: `IDLE;
-      `CHECK: state <= (check) ? `DATA: `REQ;
+      `CHECK: begin 
+          state <= (check) ? `DATA: `REQ;
+      `ifndef SYNTHESIS
+          if (check) hit_count(in_araddr_r);
+          else miss_count(in_araddr_r);
+      `endif
+      end
       `DATA: state <= `IDLE;
       `REQ: state <= (out_arvalid & out_arready) ? `TRANS :`REQ;
       `TRANS: state <= (out_rlast) ? `DATA : `TRANS;
@@ -93,17 +104,12 @@ module cache(
     end
   end
 
-  reg [8:0] count;
   assign out_rready = out_rvalid;
   always @(posedge clk) begin
-    if (state == `TRANS) begin
-      if (out_rvalid & out_rready) begin
-	cache_tag[index] <= tag;
-	cache_valid[index] <= 1'd1;
-	cache_data[index] <= out_rdata;
-        count <= count + 1;
-      end
+    if (state == `TRANS & out_rvalid & out_rready) begin
+      cache_tag[index] <= tag;
+      cache_valid[index] <= 1'd1;
+      cache_data[index] <= out_rdata;
     end
-    else count <= 0;
   end
 endmodule

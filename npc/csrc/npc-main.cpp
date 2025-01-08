@@ -14,6 +14,11 @@ void nvboard_bind_all_pins(VysyxSoCTop* top);
 void ifu_display();
 void exu_display();
 void lsu_display();
+void ali_display();
+void lsi_display();
+void cfi_display();
+void csr_display();
+
 void lsu_delay_display();
 void cache_display();
 void ipc_display();
@@ -48,6 +53,11 @@ int main(int argc, char* argv[]) {
   ifu_display();
   exu_display();
   lsu_display();
+  ali_display();
+  lsi_display();
+  cfi_display();
+  csr_display();
+
   lsu_delay_display();
   cache_display();
 

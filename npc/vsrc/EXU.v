@@ -1,7 +1,7 @@
 `ifndef SYNTHESIS
-import "DPI-C" function void exu_count();
+import "DPI-C" function void exu_count(input int addr);
 import "DPI-C" function void lsu_begin();
-import "DPI-C" function void lsu_end();
+import "DPI-C" function void lsu_end(input int addr);
 `endif
 
 module Alu(
@@ -185,7 +185,7 @@ always @(posedge clk) begin
       if (memop == 3'b111) begin
         EXU_valid <= 1;
 `ifndef SYNTHESIS
-        exu_count();
+        exu_count(pc);
       end else begin
         lsu_begin();
 `endif
@@ -194,7 +194,7 @@ always @(posedge clk) begin
     else if (memfinish) begin
       EXU_valid <= 1;
 `ifndef SYNTHESIS
-      lsu_end();
+      lsu_end(pc);
 `endif
     end
   end

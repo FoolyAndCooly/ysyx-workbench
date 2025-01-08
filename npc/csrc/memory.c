@@ -6,15 +6,6 @@
 #define BLOCK_SIZE 4
 #define DATA_SIZE BLOCK_SIZE>>2
 
-static long long hit_cnt;
-static long long miss_cnt;
-
-extern "C" void hit_count(){hit_cnt++;}
-extern "C" void miss_count(){miss_cnt++;}
-void cache_display(){
-  printf("hit probability: %f, miss probability: %f\n", (double)hit_cnt/(hit_cnt + miss_cnt), (double)miss_cnt/(hit_cnt + miss_cnt));
-  }
-
 struct block{
   uint32_t data[DATA_SIZE];
   int valid;
@@ -78,28 +69,6 @@ extern "C" void flash_read(int32_t addr, int32_t *data) {
 }
 extern "C" void mrom_read(int32_t addr, int32_t *data) {
   *data = *(uint32_t*)(guest_to_host(addr & ~0x3));
-}
-
-extern "C" unsigned char cache_check(uint32_t index, uint32_t tag) {
-  unsigned char ret = 0;
-  if (cache[index].tag == tag && cache[index].valid) {
-    ret = 1;
-    hit_cnt++;
-  } else {
-    ret = 0;
-    miss_cnt++;
-  }
-  return ret;
-}
-
-extern "C" void cache_read(uint32_t index, uint32_t offset, uint32_t* rdata) {
-  *rdata = cache[index].data[offset >> 2];
-}
-
-extern "C" void cache_write(uint32_t index, uint32_t data, uint32_t tag, uint32_t count) {
-  cache[index].data[count] = data;
-  cache[index].valid = 1;
-  cache[index].tag = tag;
 }
 
 extern "C" int pmem_read(int raddr) {

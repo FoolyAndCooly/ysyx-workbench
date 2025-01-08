@@ -349,7 +349,11 @@ ysyx_23060221_Idu idu(
   .IFU_valid(IFU_valid),
   .IDU_ready(IDU_ready),
   .IDU_valid(IDU_valid),
-  .EXU_ready(EXU_ready));
+  .EXU_ready(EXU_ready)
+`ifndef SYNTHESIS
+  ,.pc(pc)
+`endif
+  );
 
 ysyx_23060221_Exu exu(
   .clk(clock),
