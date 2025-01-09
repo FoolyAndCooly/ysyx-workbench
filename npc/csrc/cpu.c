@@ -75,7 +75,7 @@ void cache_display(){
   long long  fsbl_cnt = cnt[hit][fsbl] + cnt[miss][fsbl];
   long long  ssbl_cnt = cnt[hit][ssbl] + cnt[miss][ssbl];
   long long  client_cnt = cnt[hit][client] + cnt[miss][client];
-  double amat = (amat_fsbl * fsbl_cnt + amat_ssbl * ssbl_cnt + amat_client * client_cnt) / (fsbl_cnt + client_cnt);
+  double amat = (amat_fsbl * fsbl_cnt + amat_ssbl * ssbl_cnt + amat_client * client_cnt) / (fsbl_cnt + ssbl_cnt + client_cnt);
   printf("fsbl: hit probability: %f, miss probability: %f\n", hp_fsbl, mp_fsbl);
   printf("ssbl: hit probability: %f, miss probability: %f\n", hp_ssbl, mp_ssbl);
   printf("client: hit probability: %f, miss probability: %f\n", hp_client, mp_client);
