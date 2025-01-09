@@ -90,5 +90,5 @@ void __am_input_keybrd(AM_INPUT_KEYBRD_T *kbd) {
   } else {
     kbd->keydown = 1;
   }
-  kbd->keycode = lut[data];
+  kbd->keycode = lut[(uint32_t)data];
 }

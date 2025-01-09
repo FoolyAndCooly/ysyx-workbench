@@ -70,31 +70,58 @@ module ysyx_23060221_Arbiter(
   input [1:0]   io_master_rresp  ,
   input [31:0]  io_master_rdata  ,
   input         io_master_rlast  ,
-  input [3:0]   io_master_rid
+  input [3:0]   io_master_rid    ,
+  input         clint_awready,
+  output        clint_awvalid,
+  output [31:0] clint_awaddr ,
+  output [3:0]  clint_awid   ,
+  output [7:0]  clint_awlen  ,
+  output [2:0]  clint_awsize ,
+  output [1:0]  clint_awburst,
+  input         clint_wready ,
+  output        clint_wvalid ,
+  output [31:0] clint_wdata  ,
+  output [3:0]  clint_wstrb  ,
+  output        clint_wlast  ,
+  output        clint_bready ,
+  input         clint_bvalid ,
+  input  [1:0]  clint_bresp  ,
+  input  [3:0]  clint_bid    ,
+  input         clint_arready,
+  output        clint_arvalid,
+  output [31:0] clint_araddr ,
+  output [3:0]  clint_arid   ,
+  output [7:0]  clint_arlen  ,
+  output [2:0]  clint_arsize ,
+  output [1:0]  clint_arburst,
+  output        clint_rready ,
+  input         clint_rvalid ,
+  input [1:0]   clint_rresp  ,
+  input [31:0]  clint_rdata  ,
+  input         clint_rlast  ,
+  input [3:0]   clint_rid
 );
-  wire ifu_fast, exu_fast, mst;
-  wire io_master_memfinish;
-
-  reg master, used;
+  wire ifu_fast, exu_fast, mst, clint, slv;
+  reg master, slaver;
 
   assign ifu_fast = ifu_arvalid;
   assign exu_fast = exu_arvalid | exu_awvalid;
+`ifdef NPC
+  assign clint = (exu_arvalid &
+                 (exu_araddr == 32'ha0000048 |
+		  exu_araddr == 32'ha000004c));
+`else
+  assign clint = (exu_arvalid &
+                 (exu_araddr == 32'h02000000 |
+		  exu_araddr == 32'h02000004));
+`endif
+  assign slv = (clint) ? 1 : slaver;
   assign mst = (ifu_fast) ? 0 : ((exu_fast) ? 1 : master);
-  assign io_master_memfinish = (io_master_bvalid & io_master_bready) | (io_master_rvalid & io_master_rready);
   always @(posedge clk) begin
-    // $display("mst: %d", mst);
-    if (ifu_arvalid | exu_arvalid | exu_awvalid) used <= 1;
-    if (ifu_arvalid) begin
-      master <= 0;
-    end
-    else begin
-      if (exu_arvalid | exu_awvalid) begin
-        master <= 1;
-      end
-    end
-    if (master == 0 && (io_master_memfinish == 1)) begin
-      used <= 0;
-    end
+    if (ifu_arvalid) master <= 0;
+    else if (exu_arvalid | exu_awvalid) master <= 1;
+    if (clint) slaver <= 1;
+    else if (clint_rvalid & clint_rready) slaver <= 0;
   end
 
 wire        awvalid; 
@@ -139,13 +166,22 @@ assign io_master_wdata   =  wdata  ;
 assign io_master_wstrb   =  wstrb  ;
 assign io_master_wlast   =  wlast  ;
 assign io_master_bready  =  bready ;
-assign io_master_arvalid =  arvalid;
-assign io_master_araddr  =  araddr ;
-assign io_master_arid    =  arid   ;
-assign io_master_arlen   =  arlen  ;
-assign io_master_arsize  =  arsize ;
-assign io_master_arburst =  arburst;
-assign io_master_rready  =  rready ;
+assign io_master_arvalid = (~slv) ? arvalid : 0;
+assign io_master_araddr  = (~slv) ? araddr  : 0;
+assign io_master_arid    = (~slv) ? arid    : 0;
+assign io_master_arlen   = (~slv) ? arlen   : 0;
+assign io_master_arsize  = (~slv) ? arsize  : 0;
+assign io_master_arburst = (~slv) ? arburst : 0;
+assign io_master_rready  = (~slv) ? rready  : 0;
+
+assign clint_bready  =  (slv) ? bready  : 0;
+assign clint_arvalid =  (slv) ? arvalid : 0;
+assign clint_araddr  =  (slv) ? araddr  : 0;
+assign clint_arid    =  (slv) ? arid    : 0;
+assign clint_arlen   =  (slv) ? arlen   : 0;
+assign clint_arsize  =  (slv) ? arsize  : 0;
+assign clint_arburst =  (slv) ? arburst : 0;
+assign clint_rready  =  (slv) ? rready  : 0;
 
 assign awvalid = exu_awvalid; 
 assign awaddr  = exu_awaddr ;
@@ -166,17 +202,17 @@ assign arsize  = (mst) ?  exu_arsize  :  ifu_arsize  ;
 assign arburst = (mst) ?  exu_arburst :  ifu_arburst ;
 assign rready  = (mst) ?  exu_rready  :  ifu_rready  ;
 
-assign awready =  io_master_awready ; 
-assign wready  =  io_master_wready  ; 
-assign bvalid  =  io_master_bvalid  ; 
-assign bresp   =  io_master_bresp   ; 
-assign bid     =  io_master_bid     ; 
-assign arready =  io_master_arready ; 
-assign rvalid  =  io_master_rvalid  ; 
-assign rresp   =  io_master_rresp   ; 
-assign rdata   =  io_master_rdata   ; 
-assign rlast   =  io_master_rlast   ; 
-assign rid     =  io_master_rid     ; 
+assign awready = (slv) ? clint_awready : io_master_awready ; 
+assign wready  = (slv) ? clint_wready  : io_master_wready  ; 
+assign bvalid  = (slv) ? clint_bvalid  : io_master_bvalid  ; 
+assign bresp   = (slv) ? clint_bresp   : io_master_bresp   ; 
+assign bid     = (slv) ? clint_bid     : io_master_bid     ; 
+assign arready = (slv) ? clint_arready : io_master_arready ; 
+assign rvalid  = (slv) ? clint_rvalid  : io_master_rvalid  ; 
+assign rresp   = (slv) ? clint_rresp   : io_master_rresp   ; 
+assign rdata   = (slv) ? clint_rdata   : io_master_rdata   ; 
+assign rlast   = (slv) ? clint_rlast   : io_master_rlast   ; 
+assign rid     = (slv) ? clint_rid     : io_master_rid     ; 
 
 assign ifu_arready = (~mst) ?  arready : 0;    
 assign ifu_rvalid  = (~mst) ?  rvalid  : 0;    
@@ -196,4 +232,5 @@ assign exu_rresp   = (mst)  ?  rresp   : 0;
 assign exu_rdata   = (mst)  ?  rdata   : 0;
 assign exu_rlast   = (mst)  ?  rlast   : 0;
 assign exu_rid     = (mst)  ?  rid     : 0;
+
 endmodule

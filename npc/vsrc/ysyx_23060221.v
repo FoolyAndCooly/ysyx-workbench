@@ -296,6 +296,35 @@ ysyx_23060221_Arbiter arbiter(
   .exu_rdata   (exu_rdata   ), 
   .exu_rlast   (exu_rlast   ), 
   .exu_rid     (exu_rid     ),
+  .clint_awready(clint_awready), 
+  .clint_awvalid(clint_awvalid),
+  .clint_awaddr (clint_awaddr ),
+  .clint_awid   (clint_awid   ),
+  .clint_awlen  (clint_awlen  ),
+  .clint_awsize (clint_awsize ),
+  .clint_awburst(clint_awburst),
+  .clint_wready (clint_wready ),
+  .clint_wvalid (clint_wvalid ),
+  .clint_wdata  (clint_wdata  ),
+  .clint_wstrb  (clint_wstrb  ),
+  .clint_wlast  (clint_wlast  ),
+  .clint_bready (clint_bready ),
+  .clint_bvalid (clint_bvalid ),
+  .clint_bresp  (clint_bresp  ),
+  .clint_bid    (clint_bid    ),
+  .clint_arready(clint_arready),
+  .clint_arvalid(clint_arvalid),
+  .clint_araddr (clint_araddr ),
+  .clint_arid   (clint_arid   ),
+  .clint_arlen  (clint_arlen  ),
+  .clint_arsize (clint_arsize ),
+  .clint_arburst(clint_arburst),
+  .clint_rready (clint_rready ),
+  .clint_rvalid (clint_rvalid ),
+  .clint_rresp  (clint_rresp  ),
+  .clint_rdata  (clint_rdata  ),
+  .clint_rlast  (clint_rlast  ),
+  .clint_rid    (clint_rid    ),
   .io_master_awready(io_master_awready), 
   .io_master_awvalid(io_master_awvalid), 
   .io_master_awaddr (io_master_awaddr ), 
@@ -381,34 +410,34 @@ ysyx_23060221_Exu exu(
   .EXU_valid(EXU_valid),
   .WBU_ready(WBU_ready),
   .res(res),
-  .awready  (exu_awready)  ,
-  .awvalid  (exu_awvalid)  ,
-  .awaddr   (exu_awaddr )  ,
-  .awid     (exu_awid   )  ,
-  .awlen    (exu_awlen  )  ,
-  .awsize   (exu_awsize )  ,
-  .awburst  (exu_awburst)  ,
-  .wready   (exu_wready )  ,
-  .wvalid   (exu_wvalid )  ,
-  .wdata    (exu_wdata  )  ,
-  .wstrb    (exu_wstrb  )  ,
-  .wlast    (exu_wlast  )  ,
-  .bready   (exu_bready )  ,
-  .bvalid   (exu_bvalid )  ,
-  .bresp    (exu_bresp  )  ,
-  .bid      (exu_bid    )  ,
-  .arready  (exu_arready)  ,
-  .arvalid  (exu_arvalid)  ,
-  .araddr   (exu_araddr )  ,
-  .arid     (exu_arid   )  ,
-  .arlen    (exu_arlen  )  ,
-  .arsize   (exu_arsize )  ,
-  .arburst  (exu_arburst)  ,
-  .rready   (exu_rready )  ,
-  .rvalid   (exu_rvalid )  ,
-  .rresp    (exu_rresp  )  ,
-  .rdata    (exu_rdata  )  ,
-  .rlast    (exu_rlast  )  ,
+  .awready  (exu_awready),
+  .awvalid  (exu_awvalid),
+  .awaddr   (exu_awaddr ),
+  .awid     (exu_awid   ),
+  .awlen    (exu_awlen  ),
+  .awsize   (exu_awsize ),
+  .awburst  (exu_awburst),
+  .wready   (exu_wready ),
+  .wvalid   (exu_wvalid ),
+  .wdata    (exu_wdata  ),
+  .wstrb    (exu_wstrb  ),
+  .wlast    (exu_wlast  ),
+  .bready   (exu_bready ),
+  .bvalid   (exu_bvalid ),
+  .bresp    (exu_bresp  ),
+  .bid      (exu_bid    ),
+  .arready  (exu_arready),
+  .arvalid  (exu_arvalid),
+  .araddr   (exu_araddr ),
+  .arid     (exu_arid   ),
+  .arlen    (exu_arlen  ),
+  .arsize   (exu_arsize ),
+  .arburst  (exu_arburst),
+  .rready   (exu_rready ),
+  .rvalid   (exu_rvalid ),
+  .rresp    (exu_rresp  ),
+  .rdata    (exu_rdata  ),
+  .rlast    (exu_rlast  ),
   .rid      (exu_rid    )  
 );
 
@@ -431,6 +460,71 @@ ysyx_23060221_Wbu wbu(
   .WBU_ready(WBU_ready),
   .WBU_valid(WBU_valid)
   );
+
+wire 	        clint_awvalid;  
+wire            clint_awready;
+wire [31:0]	clint_awaddr ;  
+wire [3:0]	clint_awid   ;  
+wire [7:0]	clint_awlen  ;  
+wire [2:0]	clint_awsize ;  
+wire [1:0]	clint_awburst;  
+wire            clint_wready ;          
+wire 	        clint_wvalid ;  
+wire [31:0]	clint_wdata  ;  
+wire [3:0]	clint_wstrb  ;  
+wire 	        clint_wlast  ;  
+wire 	        clint_bready ;  
+wire	        clint_bvalid ;          
+wire [1:0]	clint_bresp  ;          
+wire [3:0]	clint_bid    ;          
+wire            clint_arready;	   
+wire 	        clint_arvalid;  
+wire [31:0]	clint_araddr ;  
+wire [3:0]	clint_arid   ;  
+wire [7:0]	clint_arlen  ;  
+wire [2:0]	clint_arsize ;  
+wire [1:0]	clint_arburst;  
+wire 	        clint_rready ;  
+wire            clint_rvalid ;          
+wire [1:0]	clint_rresp  ;          
+wire [31:0]	clint_rdata  ;          
+wire 	        clint_rlast  ;          
+wire [3:0]	clint_rid    ;          
+
+
+clint cli(
+  .clk    (clock  ), 
+  .awready(clint_awready),  
+  .awvalid(clint_awvalid), 
+  .awaddr (clint_awaddr ),  
+  .awid   (clint_awid   ),  
+  .awlen  (clint_awlen  ),  
+  .awsize (clint_awsize ),  
+  .awburst(clint_awburst),  
+  .wready (clint_wready ),  
+  .wvalid (clint_wvalid ),  
+  .wdata  (clint_wdata  ),  
+  .wstrb  (clint_wstrb  ),  
+  .wlast  (clint_wlast  ),  
+  .bready (clint_bready ),  
+  .bvalid (clint_bvalid ),
+  .bresp  (clint_bresp  ),
+  .bid    (clint_bid    ),
+  .arready(clint_arready),
+  .arvalid(clint_arvalid),  
+  .araddr (clint_araddr ),  
+  .arid   (clint_arid   ), 
+  .arlen  (clint_arlen  ),  
+  .arsize (clint_arsize ),  
+  .arburst(clint_arburst),  
+  .rready (clint_rready ),  
+  .rvalid (clint_rvalid ),
+  .rresp  (clint_rresp  ),
+  .rdata  (clint_rdata  ),
+  .rlast  (clint_rlast  ),
+  .rid    (clint_rid    ),
+  .reset  (reset  )
+);
 endmodule
 
 `ifdef NPC
@@ -467,6 +561,7 @@ wire    [1:0]	rresp	 ;
 wire    [31:0]	rdata	 ;
 wire	        rlast	 ;
 wire    [3:0]	rid	 ;
+
 ysyx_23060221 cpu(
   .clock            (clock),  
   .reset            (reset),  
@@ -563,5 +658,6 @@ sdram sd(
   .rlast  (rlast  ),
   .rid    (rid    )
 );
+
 endmodule
 `endif
