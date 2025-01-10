@@ -124,7 +124,7 @@ void reset_difftest();
 static int sim_time = 0;
 
 void ipc_display(){
-  printf("cycle: %lld, inst: %lld, IPC: %f\n", cycle_cnt, inst_cnt, (double)cycle_cnt / inst_cnt);
+  printf("cycle: %lld, inst: %lld, IPC: %f\n", cycle_cnt, inst_cnt, (double)inst_cnt/cycle_cnt);
 }
 
 extern "C" void set_npc_state(int state, int info){
