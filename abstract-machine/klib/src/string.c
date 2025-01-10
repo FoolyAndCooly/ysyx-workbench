@@ -81,7 +81,7 @@ void *memset(void *s, int c, size_t n) {
     *p4 = c4;
     p4++;
   }
-  uint8_t* p1 = (uint32_t)p4;
+  uint8_t* p1 = (uint8_t*)p4;
   for (int i = 0; i < n1; i++) {
     *p1 = c1;
     p1++;
