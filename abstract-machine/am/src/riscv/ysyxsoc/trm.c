@@ -62,8 +62,9 @@ void uart_init(){
 }
 
 void bootload(void *out, const void *in, size_t n) {
-  char* p1 = (char*)out;
-  char* p2 = (char*)in;
+  uint32_t* p1 = (uint32_t*)out;
+  uint32_t* p2 = (uint32_t*)in;
+  n = n >> 2;
   for (int i = 0; i < n; i++) {
     *p1 = *p2;
     p1++;

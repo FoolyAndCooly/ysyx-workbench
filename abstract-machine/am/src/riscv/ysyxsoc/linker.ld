@@ -13,12 +13,14 @@ SECTIONS {
     *(entry)
     *(.bootload)
     *(.fsbl)
+  . = ALIGN(4);
   } > flash AT>flash : fsbl
 
   .ssbl : {
     _sssbl_virt = .;
     *(.bootload)
     *(.ssbl)
+    . = ALIGN(4);
     _essbl_virt = .;
   } > sdram AT>flash : ssbl
   _sssbl_phys = LOADADDR(.ssbl);
@@ -27,6 +29,7 @@ SECTIONS {
     _stext_virt = .;
     *(._trm_init)
     *(.text*)
+    . = ALIGN(4);
     _etext_virt = .;
   } > sdram AT>flash : text
   _stext_phys = LOADADDR(.text);
@@ -35,6 +38,7 @@ SECTIONS {
     _srodata_virt = .;
     *(.srodata*)
     *(.rodata*)
+    . = ALIGN(4);
     _erodata_virt = .;
   } > sdram AT> flash : rodata
   _srodata_phys = LOADADDR(.rodata);
@@ -43,6 +47,7 @@ SECTIONS {
     _sdata_virt = .;
     *(.sdata*)
     *(.data*)
+    . = ALIGN(4);
     _edata_virt = .;
   } > sdram AT> flash : data
   _sdata_phys = LOADADDR(.data);

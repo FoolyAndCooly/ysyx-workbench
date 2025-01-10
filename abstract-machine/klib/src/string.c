@@ -72,10 +72,19 @@ int strncmp(const char *s1, const char *s2, size_t n) {
 }
 
 void *memset(void *s, int c, size_t n) {
-  char* p = (char*)s;
-  for (int i = 0; i < n; i++) {
-    *p = c;
-    p++;
+  size_t n1 = n & 0x3;
+  size_t n4 = n >> 2;
+  uint8_t c1 = (uint8_t)c;
+  uint32_t c4 = (c<<24)|(c<<16)|(c<<8)|c;
+  uint32_t* p4 = (uint32_t*)s;
+  for (int i = 0; i < n4; i++) {
+    *p4 = c4;
+    p4++;
+  }
+  uint8_t* p1 = (uint32_t)p4;
+  for (int i = 0; i < n1; i++) {
+    *p1 = c1;
+    p1++;
   }
   return s;
 }
