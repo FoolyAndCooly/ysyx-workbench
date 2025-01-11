@@ -4,6 +4,7 @@ else
 TOPNAME = npc
 endif
 
+TRACE_ON = false
 DIFF_TEST ?= false
 NXDC_FILES = constr/$(TOPNAME).nxdc
 WORK_DIR = $(shell pwd)
@@ -53,6 +54,10 @@ INCFLAGS += $(addprefix -I, $(INC_PATH))
 INCFLAGS += -D$(PLATFORM)
 INVFLAGS += $(addprefix -I, $(INV_PATH))
 INVFLAGS += -D$(PLATFORM)
+ifeq ($(TRACE_ON),true)
+INCFLAGS += -DTRACE
+INVFLAGS += -DTRACE
+endif
 ifeq ($(DIFF_TEST),true)
 INCFLAGS += -DDIFFTEST
 INVFLAGS += -DDIFFTEST
@@ -62,12 +67,22 @@ LDFLAGS += -lreadline
 
 $(BIN): $(VSRCS) $(CSRCS) $(NVBOARD_ARCHIVE)
 	@rm -rf $(OBJ_DIR)
+ifeq ($(TRACE_ON), true)
 	@$(VERILATOR) $(VERILATOR_CFLAGS)\
 		--top-module $(TOPNAME) $^ \
 		$(addprefix -CFLAGS , $(CXXFLAGS)) $(addprefix -LDFLAGS , $(LDFLAGS)) \
 		$(INVFLAGS) \
 		--Mdir $(OBJ_DIR) --exe -o $(abspath $(BIN)) \
 		--timescale "1ns/1ns" --no-timing --trace
+else
+	@$(VERILATOR) $(VERILATOR_CFLAGS)\
+		--top-module $(TOPNAME) $^ \
+		$(addprefix -CFLAGS , $(CXXFLAGS)) $(addprefix -LDFLAGS , $(LDFLAGS)) \
+		$(INVFLAGS) \
+		--Mdir $(OBJ_DIR) --exe -o $(abspath $(BIN)) \
+		--timescale "1ns/1ns" --no-timing
+
+endif
 
 all: default
 

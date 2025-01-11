@@ -141,12 +141,16 @@ extern "C" void set_npc_state(int state, int info){
 void cycle(){
   top->clock = 0;
   top->eval();
+#ifdef TRACE
   m_trace->dump(sim_time);
   sim_time++;
+#endif
   top->clock = 1;
   top->eval();
+#ifdef TRACE
   m_trace->dump(sim_time);
   sim_time++;
+#endif
   cycle_cnt++;
   if (lsu_flag) lsu_delay++;
   return;

@@ -5,7 +5,9 @@
 #endif
 
 extern TOP* top;
+#ifdef TRACE
 extern VerilatedVcdC* m_trace;
+#endif
 
 #ifdef SOC
 void nvboard_bind_all_pins(VysyxSoCTop* top);
@@ -29,7 +31,9 @@ int is_exit_status_bad();
 
 int sim_time = 0;
 TOP* top = NULL;
+#ifdef TRACE
 VerilatedVcdC* m_trace = NULL;
+#endif
 
 int main(int argc, char* argv[]) {
   Verilated::commandArgs(argc, argv);
@@ -41,13 +45,18 @@ int main(int argc, char* argv[]) {
   nvboard_init();
 #endif
 
+#ifdef TRACE
+  printf("trace on\n");
   m_trace = new VerilatedVcdC;
   Verilated::traceEverOn(true);
   top->trace(m_trace, 5);
   m_trace->open("waveform.vcd");
+#endif
   init_monitor(argc, argv);
   sdb_mainloop();
+#ifdef TRACE
   m_trace->close();
+#endif
 
   ipc_display();
   ifu_display();
