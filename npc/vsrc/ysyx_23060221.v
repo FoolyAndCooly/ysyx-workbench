@@ -74,7 +74,7 @@ assign io_slave_rdata    = 0;
 assign io_slave_rlast    = 0; 
 assign io_slave_rid      = 0; 
 
-reg IFU_valid, IFU_ready, IDU_ready, IDU_valid, EXU_ready, EXU_valid, WBU_ready, WBU_valid;
+wire IFU_valid, IFU_ready, IDU_ready, IDU_valid, EXU_ready, EXU_valid, LSU_ready, LSU_valid, WBU_ready, WBU_valid;
 
 reg [31:0] pc;
 
@@ -125,58 +125,65 @@ wire [31:0] ifu_rdata   ;
 wire        ifu_rlast   ;
 wire [3:0]  ifu_rid     ;
 
-wire        exu_awready ;
-wire        exu_awvalid ;
-wire [31:0] exu_awaddr  ;
-wire [3:0]  exu_awid    ;
-wire [7:0]  exu_awlen   ;
-wire [2:0]  exu_awsize  ;
-wire [1:0]  exu_awburst ;
-wire        exu_wready  ;
-wire        exu_wvalid  ;
-wire [31:0] exu_wdata   ;
-wire [3:0]  exu_wstrb   ;
-wire        exu_wlast   ;
-wire        exu_bready  ;
-wire        exu_bvalid  ;
-wire [1:0]  exu_bresp   ;
-wire [3:0]  exu_bid     ;
-wire        exu_arready ;
-wire        exu_arvalid ;
-wire [31:0] exu_araddr  ;
-wire [3:0]  exu_arid    ;
-wire [7:0]  exu_arlen   ;
-wire [2:0]  exu_arsize  ;
-wire [1:0]  exu_arburst ;
-wire        exu_rready  ;
-wire        exu_rvalid  ;
-wire [1:0]  exu_rresp   ;
-wire [31:0] exu_rdata   ;
-wire        exu_rlast   ;
-wire [3:0]  exu_rid     ;
+wire        lsu_awready ;
+wire        lsu_awvalid ;
+wire [31:0] lsu_awaddr  ;
+wire [3:0]  lsu_awid    ;
+wire [7:0]  lsu_awlen   ;
+wire [2:0]  lsu_awsize  ;
+wire [1:0]  lsu_awburst ;
+wire        lsu_wready  ;
+wire        lsu_wvalid  ;
+wire [31:0] lsu_wdata   ;
+wire [3:0]  lsu_wstrb   ;
+wire        lsu_wlast   ;
+wire        lsu_bready  ;
+wire        lsu_bvalid  ;
+wire [1:0]  lsu_bresp   ;
+wire [3:0]  lsu_bid     ;
+wire        lsu_arready ;
+wire        lsu_arvalid ;
+wire [31:0] lsu_araddr  ;
+wire [3:0]  lsu_arid    ;
+wire [7:0]  lsu_arlen   ;
+wire [2:0]  lsu_arsize  ;
+wire [1:0]  lsu_arburst ;
+wire        lsu_rready  ;
+wire        lsu_rvalid  ;
+wire [1:0]  lsu_rresp   ;
+wire [31:0] lsu_rdata   ;
+wire        lsu_rlast   ;
+wire [3:0]  lsu_rid     ;
+
+`ifndef SYNTHESIS
+reg next_reg;
+always @(posedge clock) begin
+  if (reset) next_reg <= 0;
+  else next_reg <= LSU_valid;
+end
+`endif
 
 ysyx_23060221_Ifu ifu(
-  .clk      (clock      )  ,
-  .rst      (reset      )  ,
-  .pc       (pc         )  ,
-  .inst     (inst       )  ,
-  .WBU_valid(WBU_valid  )  ,
-  .IDU_ready(IDU_ready  )  ,
-  .IFU_valid(IFU_valid  )  ,
-  .IFU_ready(IFU_ready  )  ,
-  .arready  (ifu_arready)  ,
-  .arvalid  (ifu_arvalid)  ,
-  .araddr   (ifu_araddr )  ,
-  .arid     (ifu_arid   )  ,
-  .arlen    (ifu_arlen  )  ,
-  .arsize   (ifu_arsize )  ,
-  .arburst  (ifu_arburst)  ,
-  .rready   (ifu_rready )  ,
-  .rvalid   (ifu_rvalid )  ,
-  .rresp    (ifu_rresp  )  ,
-  .rdata    (ifu_rdata  )  ,
-  .rlast    (ifu_rlast  )  ,
-  .rid      (ifu_rid    )  
+  .clk      (clock      ),
+  .rst      (reset      ),
+  .pc       (pc         ),
+  .inst     (if_inst    ),
+  .IDU_ready(IDU_ready  ),
+  .IFU_valid(IFU_valid  ),
+  .arready  (ifu_arready),
+  .arvalid  (ifu_arvalid),
+  .araddr   (ifu_araddr ),
+  .arid     (ifu_arid   ),
+  .arlen    (ifu_arlen  ),
+  .arsize   (ifu_arsize ),
+  .arburst  (ifu_arburst),
+  .rready   (ifu_rready ),
+  .rvalid   (ifu_rvalid ),
+  .rresp    (ifu_rresp  ),
+  .rdata    (ifu_rdata  ),
+  .rlast    (ifu_rlast  ),
+  .rid      (ifu_rid    ),
+  .ifidwen  (ifidwen    )
   );
 
 wire         icache_arready;
@@ -224,32 +231,66 @@ cache icache(
   .out_rid    (icache_rid    )
   ); 
 
-wire [1:0] csrraddr;
-wire [1:0] csrwaddr;
-wire [31:0] csrrdata;
-wire [31:0] csrwdata;
-
-Csr csr(
+PC_Gen pcgen(
   .clk(clock),
   .rst(reset),
-  .wen(csrwen),
-  .set_cause(csrcause),
-  .raddr(csrraddr),
-  .waddr(csrwaddr),
-  .wdata(csrwdata),
-  .rdata(csrrdata)
+  .PCAsrc(PCAsrc),
+  .PCBsrc(PCBsrc),
+  .syn(IFU_valid & IDU_ready),
+  .rs1(id_src1),
+  .imm(id_imm),
+  .pc_out(if_pc)
 );
 
+wire [31:0] if_inst, if_pc;
+wire [31:0] id_inst, id_pc;
+wire ifidwen;
+
+Reg #(64, 0) ifid(
+  .clk(clock),
+  .rst(reset),
+  .din ({if_inst, if_pc}),
+  .dout({id_inst, id_pc}),
+  .wen(ifidwen)
+);
+
+// wire [1:0] csrraddr;
+// wire [1:0] csrwaddr;
+// wire [31:0] csrrdata;
+// wire [31:0] csrwdata;
+// 
+// Csr csr(
+//   .clk(clock),
+//   .rst(reset),
+//   .wen(csrwen),
+//   .set_cause(csrcause),
+//   .raddr(csrraddr),
+//   .waddr(csrwaddr),
+//   .wdata(csrwdata),
+//   .rdata(csrrdata)
+// );
+
+
+wire [4:0] Ra, Rb;
 RegisterFile rf(
   .clk(clock),
   .rst(reset),
-  .Ra(inst[19:15]),
-  .Rb(inst[24:20]),
-  .busA(src1),
-  .busB(src2),
+  .Ra(Ra),
+  .Rb(Rb),
+  .busA(id_src1),
+  .busB(id_src2),
   .wen(regwen),
   .wdata(wd),
-  .waddr(inst[11:7])
+  .waddr(wb_waddr)
+);
+
+PCCtr pcctr(
+  .branch(branch),
+  .signal(id_aluctr[3]),
+  .rs1(id_src1),
+  .rs2(id_src2),
+  .PCAsrc(PCAsrc),
+  .PCBsrc(PCBsrc)
 );
 
 ysyx_23060221_Arbiter arbiter(
@@ -267,35 +308,35 @@ ysyx_23060221_Arbiter arbiter(
   .ifu_rdata   (icache_rdata   ), 
   .ifu_rlast   (icache_rlast   ), 
   .ifu_rid     (icache_rid     ), 
-  .exu_awready (exu_awready ), 
-  .exu_awvalid (exu_awvalid ),
-  .exu_awaddr  (exu_awaddr  ), 
-  .exu_awid    (exu_awid    ), 
-  .exu_awlen   (exu_awlen   ), 
-  .exu_awsize  (exu_awsize  ),
-  .exu_awburst (exu_awburst ), 
-  .exu_wready  (exu_wready  ), 
-  .exu_wvalid  (exu_wvalid  ), 
-  .exu_wdata   (exu_wdata   ),
-  .exu_wstrb   (exu_wstrb   ), 
-  .exu_wlast   (exu_wlast   ), 
-  .exu_bready  (exu_bready  ), 
-  .exu_bvalid  (exu_bvalid  ), 
-  .exu_bresp   (exu_bresp   ),
-  .exu_bid     (exu_bid     ), 
-  .exu_arready (exu_arready ), 
-  .exu_arvalid (exu_arvalid ),
-  .exu_araddr  (exu_araddr  ), 
-  .exu_arid    (exu_arid    ), 
-  .exu_arlen   (exu_arlen   ),
-  .exu_arsize  (exu_arsize  ), 
-  .exu_arburst (exu_arburst ), 
-  .exu_rready  (exu_rready  ),
-  .exu_rvalid  (exu_rvalid  ), 
-  .exu_rresp   (exu_rresp   ), 
-  .exu_rdata   (exu_rdata   ), 
-  .exu_rlast   (exu_rlast   ), 
-  .exu_rid     (exu_rid     ),
+  .lsu_awready (lsu_awready ), 
+  .lsu_awvalid (lsu_awvalid ),
+  .lsu_awaddr  (lsu_awaddr  ), 
+  .lsu_awid    (lsu_awid    ), 
+  .lsu_awlen   (lsu_awlen   ), 
+  .lsu_awsize  (lsu_awsize  ),
+  .lsu_awburst (lsu_awburst ), 
+  .lsu_wready  (lsu_wready  ), 
+  .lsu_wvalid  (lsu_wvalid  ), 
+  .lsu_wdata   (lsu_wdata   ),
+  .lsu_wstrb   (lsu_wstrb   ), 
+  .lsu_wlast   (lsu_wlast   ), 
+  .lsu_bready  (lsu_bready  ), 
+  .lsu_bvalid  (lsu_bvalid  ), 
+  .lsu_bresp   (lsu_bresp   ),
+  .lsu_bid     (lsu_bid     ), 
+  .lsu_arready (lsu_arready ), 
+  .lsu_arvalid (lsu_arvalid ),
+  .lsu_araddr  (lsu_araddr  ), 
+  .lsu_arid    (lsu_arid    ), 
+  .lsu_arlen   (lsu_arlen   ),
+  .lsu_arsize  (lsu_arsize  ), 
+  .lsu_arburst (lsu_arburst ), 
+  .lsu_rready  (lsu_rready  ),
+  .lsu_rvalid  (lsu_rvalid  ), 
+  .lsu_rresp   (lsu_rresp   ), 
+  .lsu_rdata   (lsu_rdata   ), 
+  .lsu_rlast   (lsu_rlast   ), 
+  .lsu_rid     (lsu_rid     ),
   .clint_awready(clint_awready), 
   .clint_awvalid(clint_awvalid),
   .clint_awaddr (clint_awaddr ),
@@ -357,24 +398,20 @@ ysyx_23060221_Arbiter arbiter(
 );
 
 ysyx_23060221_Idu idu(
-  .rst(reset),
   .clk(clock),
-  .inst(inst),
-  .aluctr(aluctr),
-  .aluasrc(aluasrc),
-  .alubsrc(alubsrc),
+  .rst(reset),
+  .inst(id_inst),
+  .aluctr (id_aluctr),
+  .aluasrc(id_aluasrc),
+  .alubsrc(id_alubsrc),
   .branch(branch),
-  .memop(memop),
-  .memtoreg(memtoreg),
-  .memwr(memwr),
-  .imm(imm),
-  .regw(regw),
-  .csrALU(csrALU),
-  .csrw(csrw),
-  .csrpc(csrpc),
-  .csrcause(csrcause),
-  .csrwaddr(csrwaddr),
-  .csrraddr(csrraddr),
+  .Ra(Ra),
+  .Rb(Rb),
+  .memop(id_memop),
+  .memtoreg(id_memtoreg),
+  .memwr(id_memwr),
+  .imm(id_imm),
+  .regw(id_regw),
   .IFU_valid(IFU_valid),
   .IDU_ready(IDU_ready),
   .IDU_valid(IDU_valid),
@@ -384,81 +421,149 @@ ysyx_23060221_Idu idu(
 `endif
   );
 
+wire [3:0]  id_aluctr;
+wire id_aluasrc;
+wire [1:0]  id_alubsrc;
+wire [31:0] id_imm;
+wire [2:0]  id_memop;
+wire        id_memwr;
+wire [31:0] id_src1;
+wire [31:0] id_src2;
+wire id_memtoreg;
+wire id_regw;
+wire [4:0] id_waddr;
+
+wire [3:0]  ex_aluctr;
+wire ex_aluasrc;
+wire [1:0]  ex_alubsrc;
+wire [31:0] ex_imm;
+wire [31:0] ex_pc;
+wire [2:0]  ex_memop;
+wire        ex_memwr;
+wire [31:0] ex_src1;
+wire [31:0] ex_src2;
+wire ex_memtoreg;
+wire ex_regw;
+wire [4:0] ex_waddr;
+
+// aluctr: 4, aluasrc: 1, alubsrc: 2, imm: 32, pc: 32, memop: 3, memwr: 1, src1: 32, src2: 32, mem2reg: 1, regw: 1, waddr: 5
+Reg #(146, 0) idex(
+  .clk(clock),
+  .rst(reset),
+  .din ({id_aluctr, id_aluasrc, id_alubsrc, id_imm, id_pc, id_memop, id_memwr, id_src1, id_src2, id_memtoreg, id_regw, id_waddr}),
+  .dout({ex_aluctr, ex_aluasrc, ex_alubsrc, ex_imm, ex_pc, ex_memop, ex_memwr, ex_src1, ex_src2, ex_memtoreg, ex_regw, ex_waddr}),
+  .wen(IFU_valid & IDU_valid)
+);
+
 ysyx_23060221_Exu exu(
   .clk(clock),
   .rst(reset),
-  .src1(src1),
-  .src2(src2),
-  .pc(pc),
-  .imm(imm),
-  .aluctr(aluctr),
-  .aluasrc(aluasrc),
-  .alubsrc(alubsrc),
-  .branch(branch),
-  .PCAsrc(PCAsrc),
-  .PCBsrc(PCBsrc),
-  .memop(memop),
-  .memwr(memwr),
-  .memtoreg(memtoreg),
-  .wd(wd),
-  .csrALU(csrALU),
-  .csrw(csrw),
-  .csrrdata(csrrdata),
-  .csrwdata(csrwdata),
+  .src1(ex_src1),
+  .src2(ex_src2),
+  .pc(ex_pc),
+  .imm(ex_imm),
+  .aluctr(ex_aluctr),
+  .aluasrc(ex_aluasrc),
+  .alubsrc(ex_alubsrc),
+  .res(ex_res),
   .IDU_valid(IDU_valid),
   .EXU_ready(EXU_ready),
   .EXU_valid(EXU_valid),
-  .WBU_ready(WBU_ready),
-  .res(res),
-  .awready  (exu_awready),
-  .awvalid  (exu_awvalid),
-  .awaddr   (exu_awaddr ),
-  .awid     (exu_awid   ),
-  .awlen    (exu_awlen  ),
-  .awsize   (exu_awsize ),
-  .awburst  (exu_awburst),
-  .wready   (exu_wready ),
-  .wvalid   (exu_wvalid ),
-  .wdata    (exu_wdata  ),
-  .wstrb    (exu_wstrb  ),
-  .wlast    (exu_wlast  ),
-  .bready   (exu_bready ),
-  .bvalid   (exu_bvalid ),
-  .bresp    (exu_bresp  ),
-  .bid      (exu_bid    ),
-  .arready  (exu_arready),
-  .arvalid  (exu_arvalid),
-  .araddr   (exu_araddr ),
-  .arid     (exu_arid   ),
-  .arlen    (exu_arlen  ),
-  .arsize   (exu_arsize ),
-  .arburst  (exu_arburst),
-  .rready   (exu_rready ),
-  .rvalid   (exu_rvalid ),
-  .rresp    (exu_rresp  ),
-  .rdata    (exu_rdata  ),
-  .rlast    (exu_rlast  ),
-  .rid      (exu_rid    )  
+  .LSU_ready(LSU_ready)
+);
+
+wire [31:0] ex_res;
+wire [2:0] ls_memop;
+wire ls_memwr;
+wire [31:0] ls_src2;
+wire [31:0] ls_res;
+wire ls_memtoreg;
+wire ls_regw;
+wire [4:0] ls_waddr;
+wire lswbwen;
+// memop: 3, memwr: 1, src2: 32, res: 32, mem2reg: 1, regw: 1, waddr: 5
+Reg #(75, 0) exls(
+  .clk(clock),
+  .rst(reset),
+  .din ({ex_memop, ex_memwr, ex_src2, ex_res, ex_memtoreg, ex_regw, ex_waddr}),
+  .dout({ls_memop, ls_memwr, ls_src2, ls_res, ls_memtoreg, ls_regw, ls_waddr}),
+  .wen(IDU_valid & EXU_valid)
+);
+
+ysyx_23060221_Lsu lsu(
+  .clk(clock),
+  .rst(reset),
+  .res(ls_res),
+  .rs2(ls_src2),
+  .memop(ls_memop),
+  .memwr(ls_memwr),
+  .dataout  (ls_dataout),
+  .LSU_ready(LSU_ready  ),
+  .LSU_valid(LSU_valid  ),
+  .WBU_ready(WBU_ready  ),
+  .EXU_valid(EXU_valid  ),
+  .awready  (lsu_awready),
+  .awvalid  (lsu_awvalid),
+  .awaddr   (lsu_awaddr ),
+  .awid     (lsu_awid   ),
+  .awlen    (lsu_awlen  ),
+  .awsize   (lsu_awsize ),
+  .awburst  (lsu_awburst),
+  .wready   (lsu_wready ),
+  .wvalid   (lsu_wvalid ),
+  .wdata    (lsu_wdata  ),
+  .wstrb    (lsu_wstrb  ),
+  .wlast    (lsu_wlast  ),
+  .bready   (lsu_bready ),
+  .bvalid   (lsu_bvalid ),
+  .bresp    (lsu_bresp  ),
+  .bid      (lsu_bid    ),
+  .arready  (lsu_arready),
+  .arvalid  (lsu_arvalid),
+  .araddr   (lsu_araddr ),
+  .arid     (lsu_arid   ),
+  .arlen    (lsu_arlen  ),
+  .arsize   (lsu_arsize ),
+  .arburst  (lsu_arburst),
+  .rready   (lsu_rready ),
+  .rvalid   (lsu_rvalid ),
+  .rresp    (lsu_rresp  ),
+  .rdata    (lsu_rdata  ),
+  .rlast    (lsu_rlast  ),
+  .rid      (lsu_rid    ),
+  .lswbwen  (lswbwen    )
+`ifndef SYNTHESIS
+  ,.pc(pc)
+`endif
+);
+
+wire [31:0] ls_dataout;
+wire [31:0] wb_res;
+wire [31:0] wb_dataout;
+wire wb_memtoreg;
+wire wb_regw;
+wire [4:0] wb_waddr;
+
+// res: 32, dataout: 32, mem2reg: 1, regw: 1, waddr: 5
+Reg #(71, 0) lswb(
+  .clk(clock),
+  .rst(reset),
+  .din ({ls_res, ls_dataout, ls_memtoreg, ls_regw, ls_waddr}),
+  .dout({wb_res, wb_dataout, wb_memtoreg, wb_regw, wb_waddr}),
+  .wen(lswbwen)
 );
 
 ysyx_23060221_Wbu wbu(
-  .rst(reset),
-  .rs1(src1),
-  .imm(imm),
-  .PCAsrc(PCAsrc),
-  .PCBsrc(PCBsrc),
-  .pc(pc),
-  .clk(clock),
-  .csrw(csrw),
-  .regw(regw),
-  .csrpc(csrpc),
-  .csrrdata(csrrdata),
-  .csrwen(csrwen),
-  .regwen(regwen),
-  .EXU_valid(EXU_valid),
-  .IFU_ready(IFU_ready),
-  .WBU_ready(WBU_ready),
-  .WBU_valid(WBU_valid)
+  .clk      (clock       ),
+  .rst      (reset       ),
+  .res      (wb_res      ),
+  .dataout  (wb_dataout  ),
+  .memtoreg (wb_memtoreg ),
+  .regw     (wb_regw     ),
+  .regwen   (regwen      ),
+  .wd       (wd          ),
+  .WBU_ready(WBU_ready   ),
+  .LSU_valid(LSU_valid   )
   );
 
 wire 	        clint_awvalid;  

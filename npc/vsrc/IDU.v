@@ -31,6 +31,32 @@ module ImmGen(
   });
 endmodule
 
+module PCCtr(
+  input [2:0] branch,
+  input signal,
+  input [31:0] rs1, rs2,
+  output PCAsrc, PCBsrc
+);
+  wire zero = (rs1 == rs2);
+  wire less = signal ? (rs1 < rs2) : ($signed(rs1) < $signed(rs2));
+  reg PCAsrc_reg, PCBsrc_reg;
+  assign PCAsrc = PCAsrc_reg;
+  assign PCBsrc = PCBsrc_reg;
+  always @(*) begin
+    PCBsrc_reg = (branch == 3'b010) ? 1 : 0;
+    case(branch)
+      3'b000:  PCAsrc_reg = 0;
+      3'b001:  PCAsrc_reg = 1;
+      3'b010:  PCAsrc_reg = 1;
+      3'b100:  PCAsrc_reg = zero;
+      3'b101:  PCAsrc_reg = ~zero;
+      3'b110:  PCAsrc_reg = less;
+      3'b111:  PCAsrc_reg = ~less;
+      default: PCAsrc_reg = 0;
+    endcase
+  end
+endmodule
+
 module Csr(
   input clk,
   input rst,
@@ -118,20 +144,15 @@ module ContrGen(
   input inst21,
   input clk,
   input syn,
-  output reg IDU_valid,
-  output reg [2:0] ExtOp,
-  output reg [3:0] ALUctr,
-  output reg ALUAsrc,
-  output reg [1:0] ALUBsrc,
-  output reg Regw,
-  output reg [2:0] branch,
-  output reg MemtoReg,
-  output reg [2:0] MemOp,
-  output reg MemWr,
-  output reg csrALU,
-  output reg csrw,
-  output reg csrpc,
-  output reg csrcause
+  output [2:0] ExtOp,
+  output [3:0] ALUctr,
+  output ALUAsrc,
+  output [1:0] ALUBsrc,
+  output Regw,
+  output [2:0] branch,
+  output MemtoReg,
+  output [2:0] MemOp,
+  output MemWr
 `ifndef SYNTHESIS
   ,input [31:0] pc
 `endif
@@ -140,10 +161,9 @@ reg [22:0] ctr;
 // 1:csrALU 1:csrw 1:csrpc 1:csrcause  1:MemWr 1:MemtoReg 3: MemOp 3: branch  1: RegWr 4: ALUctr, 1: ALUAsrc, 2: ALUBsrc[1:0], ExtOp[2:0]
 always @(posedge clk) begin
   if (rst) 
-    IDU_valid <= 0;
+    ctr <= {23{1'b1}};
   else begin
     if (syn) begin
-      IDU_valid <= 1;
       case (op_6_2)
         5'b00000: begin
 `ifndef SYNTHESIS
@@ -309,32 +329,23 @@ assign  branch = ctr[13:11];
 assign  MemOp = ctr[16:14];
 assign  MemtoReg = ctr[17];
 assign  MemWr = ctr[18];
-assign  csrcause = ctr[19];
-assign  csrpc = ctr[20];
-assign  csrw = ctr[21];
-assign  csrALU = ctr[22];
-
 endmodule
 
 module ysyx_23060221_Idu(
+  input clk,
   input rst,
   input [31:0] inst,
-  input clk,
   output [3:0] aluctr,
   output aluasrc,
   output [1:0] alubsrc,
   output [2:0] branch,
+  output [4:0] Ra,
+  output [4:0] Rb,
   output [2:0] memop,
   output memtoreg,
   output memwr,
   output [31:0] imm,
   output regw,
-  output [1:0] csrwaddr,
-  output [1:0] csrraddr,
-  output reg csrALU,
-  output reg csrw,
-  output reg csrpc,
-  output reg csrcause,
   output reg IDU_ready,
   output reg IDU_valid,
   input reg EXU_ready,
@@ -343,28 +354,28 @@ module ysyx_23060221_Idu(
   ,input [31:0] pc
 `endif
 );
-  wire [2:0] extop;
-  assign csrraddr = (csrcause) ? `MTVEC : ((csrALU) ? csrwaddr : `MEPC);
 
-  wire syn_IFU_IDU, syn_IDU_EXU;
-  assign syn_IFU_IDU = IFU_valid & IDU_ready;
-  assign syn_IDU_EXU = IDU_valid & EXU_ready;
+  assign Ra = inst[19:15];
+  assign Rb = inst[24:20];
+  wire [2:0] extop;
+
+  reg IDU_ready_reg, IDU_valid_reg;
+  wire syn_IFU_IDU = (IFU_valid & IDU_ready);
+  wire syn_IDU_EXU = (IDU_valid & EXU_ready);
+  assign IDU_ready = syn_IDU_EXU | IDU_ready_reg;
+  assign IDU_valid = IDU_valid_reg;
+  always @(posedge clk) begin
+    if (rst) IDU_ready_reg <= 1;
+    else if (syn_IDU_EXU) IDU_ready_reg <= 1;
+    else if (syn_IFU_IDU) IDU_ready_reg <= 0;
+  end
 
   always @(posedge clk) begin
-    if (rst) begin
-      IDU_ready <= 1;
-    end
-    else begin
-      if (syn_IFU_IDU) begin 
-        // $display("IDU");
-        IDU_ready <= 0;
-      end
-      if (syn_IDU_EXU) begin 
-        IDU_valid <= 0;
-        IDU_ready <= 1;
-      end
-    end
+    if (rst) IDU_valid_reg <= 0;
+    else if (syn_IFU_IDU) IDU_valid_reg <= 1;
+    else if (syn_IDU_EXU) IDU_valid_reg <= 0;
   end
+
   ContrGen cg (
   .rst(rst),
   .op_6_2 (inst[6:2]), 
@@ -377,15 +388,10 @@ module ysyx_23060221_Idu(
   .ALUAsrc(aluasrc), 
   .ALUBsrc(alubsrc), 
   .Regw(regw),
-  .csrcause(csrcause),
-  .csrpc(csrpc),
-  .csrw(csrw),
-  .csrALU(csrALU),
   .branch(branch),
   .MemOp(memop),
   .MemtoReg(memtoreg),
   .MemWr(memwr),
-  .IDU_valid(IDU_valid),
   .clk(clk),
   .syn(syn_IFU_IDU)
 `ifndef SYNTHESIS
@@ -394,12 +400,5 @@ module ysyx_23060221_Idu(
   );
 
   ImmGen ig (inst, extop, imm);
-
-  MuxKey #(4, 32, 2) i (csrwaddr, imm, {
-    32'h300, `MSTATUS,
-    32'h305, `MTVEC,
-    32'h341, `MEPC,
-    32'h342, `MCAUSE
-  });
 
 endmodule

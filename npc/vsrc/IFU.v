@@ -1,15 +1,38 @@
 `ifndef SYNTHESIS
 import "DPI-C" function void ifu_count(input int addr);
 `endif
+
+module PC_Gen(
+  input clk,
+  input rst,
+  input PCAsrc, PCBsrc,
+  input syn,
+  input [31:0] rs1,
+  input [31:0] imm,
+  output [31:0] pc_out
+);
+  reg [31:0] pc;
+  assign pc_out = pc;
+
+  always @(posedge clk) begin
+    if (rst) begin 
+  `ifdef SOC
+      pc <= 32'h30000000;
+  `else
+      pc <= 32'h80000000;
+  `endif
+    end
+    else if (syn) pc <= (PCAsrc) ? (imm + ((PCBsrc) ? rs1 : pc)) : (pc + 4);
+  end
+endmodule
+
 module ysyx_23060221_Ifu(
   input             clk  ,
   input             rst  ,
   input  [31:0]       pc ,
   output [31:0]      inst,
-  input  reg    WBU_valid,
-  input  reg    IDU_ready,
-  output reg    IFU_valid,
-  output reg    IFU_ready,
+  input         IDU_ready,
+  output        IFU_valid,
   input         arready  ,
   output        arvalid  ,
   output [31:0] araddr   ,
@@ -22,46 +45,32 @@ module ysyx_23060221_Ifu(
   input [1:0]   rresp    ,
   input [31:0]  rdata    ,
   input         rlast    ,
-  input [3:0]   rid      
+  input [3:0]   rid      ,
+  output        ifidwen  
   );
 
 /*************control**************/
-wire syn_IFU_IDU, syn_WBU_IFU;
 wire memfinish;
-assign syn_IFU_IDU = IFU_valid & IDU_ready; 
-assign syn_WBU_IFU = WBU_valid & IFU_ready;
-
-always @(posedge clk) begin
-  // $strobe("IFU_valid %d", IFU_valid);
-  // $strobe("WBU_valid %d", WBU_valid);
-  // $strobe("IFU_ready %d", IFU_ready);
-  if (rst) begin
-    IFU_ready <= 1;
-  end
-  else begin
-    if (syn_WBU_IFU) begin 
-      IFU_ready <= 0;
-      // $display("IFU");
-    end
-    if (syn_IFU_IDU) begin 
-      IFU_valid <= 0;
-      IFU_ready <= 1;
-    end
-  end
-end
+wire syn_IFU_IDU = IFU_valid & IDU_ready;
+assign IFU_valid = IFU_valid_reg;
+assign ifidwen = memfinish;
+reg IFU_valid_reg;
 
 always @(posedge clk) begin
   if (rst)
-    IFU_valid <= 0;
+    IFU_valid_reg <= 0;
   else if (memfinish) begin
-    IFU_valid <= 1;
+    IFU_valid_reg <= 1;
 `ifndef SYNTHESIS
     ifu_count(pc);
 `endif
   end
+  else if (syn_IFU_IDU) IFU_valid_reg <= 0;
 end
 
 assign memfinish = (rvalid & rready);
+
+
 
 /*************AXI-master**************/
 
@@ -76,7 +85,7 @@ wire rstart;
 /*************assign**************/
 assign inst = reg_rdata[31:0];
 
-assign rstart = syn_WBU_IFU;
+assign rstart = syn_IFU_IDU;
 
 assign arvalid = reg_arvalid;
 assign araddr  = reg_araddr ;

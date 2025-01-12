@@ -138,6 +138,11 @@ extern "C" void set_npc_state(int state, int info){
   }
 }
 
+static int nextval = 0;
+extern "C" void next(int valid) {
+  nextval = valid;
+}
+
 void cycle(){
   top->clock = 0;
   top->eval();
@@ -184,7 +189,7 @@ void execute(uint64_t n, int type) {
 #ifdef SOC
 	nvboard_update();
 #endif
-      } while(!NEXT);
+      } while(!nextval);
     }
     else {
       do{

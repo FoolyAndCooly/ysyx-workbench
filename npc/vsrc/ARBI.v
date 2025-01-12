@@ -13,35 +13,35 @@ module ysyx_23060221_Arbiter(
   output [31:0] ifu_rdata  ,
   output        ifu_rlast  ,
   output [3:0]  ifu_rid    ,
-  output        exu_awready,
-  input         exu_awvalid,
-  input [31:0]  exu_awaddr ,
-  input [3:0]   exu_awid   ,
-  input [7:0]   exu_awlen  ,
-  input [2:0]   exu_awsize ,
-  input [1:0]   exu_awburst,
-  output        exu_wready ,
-  input         exu_wvalid ,
-  input [31:0]  exu_wdata  ,
-  input [3:0]   exu_wstrb  ,
-  input         exu_wlast  ,
-  input         exu_bready ,
-  output        exu_bvalid ,
-  output [1:0]  exu_bresp  ,
-  output [3:0]  exu_bid    ,
-  output        exu_arready,
-  input         exu_arvalid,
-  input [31:0]  exu_araddr ,
-  input [3:0]   exu_arid   ,
-  input [7:0]   exu_arlen  ,
-  input [2:0]   exu_arsize ,
-  input [1:0]   exu_arburst,
-  input         exu_rready ,
-  output        exu_rvalid ,
-  output [1:0]  exu_rresp  ,
-  output [31:0] exu_rdata  ,
-  output        exu_rlast  ,
-  output [3:0]  exu_rid    ,
+  output        lsu_awready,
+  input         lsu_awvalid,
+  input [31:0]  lsu_awaddr ,
+  input [3:0]   lsu_awid   ,
+  input [7:0]   lsu_awlen  ,
+  input [2:0]   lsu_awsize ,
+  input [1:0]   lsu_awburst,
+  output        lsu_wready ,
+  input         lsu_wvalid ,
+  input [31:0]  lsu_wdata  ,
+  input [3:0]   lsu_wstrb  ,
+  input         lsu_wlast  ,
+  input         lsu_bready ,
+  output        lsu_bvalid ,
+  output [1:0]  lsu_bresp  ,
+  output [3:0]  lsu_bid    ,
+  output        lsu_arready,
+  input         lsu_arvalid,
+  input [31:0]  lsu_araddr ,
+  input [3:0]   lsu_arid   ,
+  input [7:0]   lsu_arlen  ,
+  input [2:0]   lsu_arsize ,
+  input [1:0]   lsu_arburst,
+  input         lsu_rready ,
+  output        lsu_rvalid ,
+  output [1:0]  lsu_rresp  ,
+  output [31:0] lsu_rdata  ,
+  output        lsu_rlast  ,
+  output [3:0]  lsu_rid    ,
   input         io_master_awready,
   output        io_master_awvalid,
   output [31:0] io_master_awaddr ,
@@ -101,25 +101,25 @@ module ysyx_23060221_Arbiter(
   input         clint_rlast  ,
   input [3:0]   clint_rid
 );
-  wire ifu_fast, exu_fast, mst, clint, slv;
+  wire ifu_fast, lsu_fast, mst, clint, slv;
   reg master, slaver;
 
   assign ifu_fast = ifu_arvalid;
-  assign exu_fast = exu_arvalid | exu_awvalid;
+  assign lsu_fast = lsu_arvalid | lsu_awvalid;
 `ifdef NPC
-  assign clint = (exu_arvalid &
-                 (exu_araddr == 32'ha0000048 |
-		  exu_araddr == 32'ha000004c));
+  assign clint = (lsu_arvalid &
+                 (lsu_araddr == 32'ha0000048 |
+		  lsu_araddr == 32'ha000004c));
 `else
-  assign clint = (exu_arvalid &
-                 (exu_araddr == 32'h02000000 |
-		  exu_araddr == 32'h02000004));
+  assign clint = (lsu_arvalid &
+                 (lsu_araddr == 32'h02000000 |
+		  lsu_araddr == 32'h02000004));
 `endif
   assign slv = (clint) ? 1 : slaver;
-  assign mst = (ifu_fast) ? 0 : ((exu_fast) ? 1 : master);
+  assign mst = (ifu_fast) ? 0 : ((lsu_fast) ? 1 : master);
   always @(posedge clk) begin
     if (ifu_arvalid) master <= 0;
-    else if (exu_arvalid | exu_awvalid) master <= 1;
+    else if (lsu_arvalid | lsu_awvalid) master <= 1;
     if (clint) slaver <= 1;
     else if (clint_rvalid & clint_rready) slaver <= 0;
   end
@@ -183,24 +183,24 @@ assign clint_arsize  =  (slv) ? arsize  : 0;
 assign clint_arburst =  (slv) ? arburst : 0;
 assign clint_rready  =  (slv) ? rready  : 0;
 
-assign awvalid = exu_awvalid; 
-assign awaddr  = exu_awaddr ;
-assign awid    = exu_awid   ;
-assign awlen   = exu_awlen  ;
-assign awsize  = exu_awsize ;
-assign awburst = exu_awburst;
-assign wvalid  = exu_wvalid ;
-assign wdata   = exu_wdata  ;
-assign wstrb   = exu_wstrb  ;
-assign wlast   = exu_wlast  ;
-assign bready  = exu_bready ;
-assign arvalid = (mst) ?  exu_arvalid :  ifu_arvalid ;
-assign araddr  = (mst) ?  exu_araddr  :  ifu_araddr  ;
-assign arid    = (mst) ?  exu_arid    :  ifu_arid    ;
-assign arlen   = (mst) ?  exu_arlen   :  ifu_arlen   ;
-assign arsize  = (mst) ?  exu_arsize  :  ifu_arsize  ;
-assign arburst = (mst) ?  exu_arburst :  ifu_arburst ;
-assign rready  = (mst) ?  exu_rready  :  ifu_rready  ;
+assign awvalid = lsu_awvalid; 
+assign awaddr  = lsu_awaddr ;
+assign awid    = lsu_awid   ;
+assign awlen   = lsu_awlen  ;
+assign awsize  = lsu_awsize ;
+assign awburst = lsu_awburst;
+assign wvalid  = lsu_wvalid ;
+assign wdata   = lsu_wdata  ;
+assign wstrb   = lsu_wstrb  ;
+assign wlast   = lsu_wlast  ;
+assign bready  = lsu_bready ;
+assign arvalid = (mst) ?  lsu_arvalid :  ifu_arvalid ;
+assign araddr  = (mst) ?  lsu_araddr  :  ifu_araddr  ;
+assign arid    = (mst) ?  lsu_arid    :  ifu_arid    ;
+assign arlen   = (mst) ?  lsu_arlen   :  ifu_arlen   ;
+assign arsize  = (mst) ?  lsu_arsize  :  ifu_arsize  ;
+assign arburst = (mst) ?  lsu_arburst :  ifu_arburst ;
+assign rready  = (mst) ?  lsu_rready  :  ifu_rready  ;
 
 assign awready = (slv) ? clint_awready : io_master_awready ; 
 assign wready  = (slv) ? clint_wready  : io_master_wready  ; 
@@ -221,16 +221,16 @@ assign ifu_rdata   = (~mst) ?  rdata   : 0;
 assign ifu_rlast   = (~mst) ?  rlast   : 0;    
 assign ifu_rid     = (~mst) ?  rid     : 0;    
 
-assign exu_awready = awready;
-assign exu_wready  = wready ;
-assign exu_bvalid  = bvalid ;
-assign exu_bresp   = bresp  ;
-assign exu_bid     = bid    ;
-assign exu_arready = (mst)  ?  arready : 0;
-assign exu_rvalid  = (mst)  ?  rvalid  : 0;
-assign exu_rresp   = (mst)  ?  rresp   : 0;
-assign exu_rdata   = (mst)  ?  rdata   : 0;
-assign exu_rlast   = (mst)  ?  rlast   : 0;
-assign exu_rid     = (mst)  ?  rid     : 0;
+assign lsu_awready = awready;
+assign lsu_wready  = wready ;
+assign lsu_bvalid  = bvalid ;
+assign lsu_bresp   = bresp  ;
+assign lsu_bid     = bid    ;
+assign lsu_arready = (mst)  ?  arready : 0;
+assign lsu_rvalid  = (mst)  ?  rvalid  : 0;
+assign lsu_rresp   = (mst)  ?  rresp   : 0;
+assign lsu_rdata   = (mst)  ?  rdata   : 0;
+assign lsu_rlast   = (mst)  ?  rlast   : 0;
+assign lsu_rid     = (mst)  ?  rid     : 0;
 
 endmodule
