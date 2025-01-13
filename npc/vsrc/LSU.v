@@ -46,9 +46,6 @@ module ysyx_23060221_Lsu(
   input         rlast    ,
   input [3:0]   rid      ,
   output        lswbwen  
-`ifndef SYNTHESIS
-  ,input [31:0] pc
-`endif
 );
 
 reg LSU_ready_reg, LSU_valid_reg;
@@ -65,8 +62,14 @@ end
 
 always @(posedge clk) begin
   if (rst) LSU_valid_reg <= 0;
-  else if (memfinish) LSU_valid_reg <= 1;
-  else if (syn_LSU_WBU) LSU_valid_reg <= 0;
+  else if (memop != 3'b111) begin
+    if (memfinish) LSU_valid_reg <= 1;
+    else if (syn_LSU_WBU) LSU_valid_reg <= 0;
+  end
+  else begin
+    if (syn_EXU_LSU) LSU_valid_reg <= 1;
+    else if (syn_LSU_WBU) LSU_valid_reg <= 0;
+  end
 end
 
 wire memfinish = (bvalid & bready) | (rvalid & rready);
@@ -75,20 +78,20 @@ reg [31:0] data_out;
 assign dataout = data_out;
 
 `ifndef SYNTHESIS
-always @(posedge clk) begin
-  if (~rst) begin
-    if (syn_EXU_LSU) begin
-      if (memop == 3'b111) begin
-        exu_count(pc);
-      end else begin
-        lsu_begin();
-      end
-    end
-    else if (memfinish) begin
-      lsu_end(pc);
-    end
-  end
-end
+// always @(posedge clk) begin
+//   if (~rst) begin
+//     if (syn_EXU_LSU) begin
+//       if (memop == 3'b111) begin
+//         exu_count(pc);
+//       end else begin
+//         lsu_begin();
+//       end
+//     end
+//     else if (memfinish) begin
+//       lsu_end(pc);
+//     end
+//   end
+// end
 `endif
 
 always @(*) begin 

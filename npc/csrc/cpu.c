@@ -135,6 +135,7 @@ extern "C" void set_npc_state(int state, int info){
     if (info == 0) printf("decode error\n");
     if (info == 1) printf("mem error\n");
     if (info == 2) printf("csr error\n");
+    if (info == 3) printf("compute error\n");
   }
 }
 

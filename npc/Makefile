@@ -4,7 +4,7 @@ else
 TOPNAME = npc
 endif
 
-TRACE_ON = false
+TRACE_ON = true
 DIFF_TEST ?= false
 NXDC_FILES = constr/$(TOPNAME).nxdc
 WORK_DIR = $(shell pwd)

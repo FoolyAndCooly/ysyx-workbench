@@ -74,9 +74,7 @@ assign io_slave_rdata    = 0;
 assign io_slave_rlast    = 0; 
 assign io_slave_rid      = 0; 
 
-wire IFU_valid, IFU_ready, IDU_ready, IDU_valid, EXU_ready, EXU_valid, LSU_ready, LSU_valid, WBU_ready, WBU_valid;
-
-reg [31:0] pc;
+wire IFU_valid, IDU_ready, IDU_valid, EXU_ready, EXU_valid, LSU_ready, LSU_valid, WBU_ready;
 
 // always @(posedge clock) begin
 //   $display("pc       :%08x", pc      );
@@ -166,8 +164,7 @@ end
 ysyx_23060221_Ifu ifu(
   .clk      (clock      ),
   .rst      (reset      ),
-  .pc       (pc         ),
-  .inst     (if_inst    ),
+  .pc       (if_pc      ),
   .IDU_ready(IDU_ready  ),
   .IFU_valid(IFU_valid  ),
   .arready  (ifu_arready),
@@ -180,7 +177,6 @@ ysyx_23060221_Ifu ifu(
   .rready   (ifu_rready ),
   .rvalid   (ifu_rvalid ),
   .rresp    (ifu_rresp  ),
-  .rdata    (ifu_rdata  ),
   .rlast    (ifu_rlast  ),
   .rid      (ifu_rid    ),
   .ifidwen  (ifidwen    )
@@ -231,12 +227,13 @@ cache icache(
   .out_rid    (icache_rid    )
   ); 
 
+wire pc_update;
 PC_Gen pcgen(
   .clk(clock),
   .rst(reset),
   .PCAsrc(PCAsrc),
   .PCBsrc(PCBsrc),
-  .syn(IFU_valid & IDU_ready),
+  .syn(ifidwen),
   .rs1(id_src1),
   .imm(id_imm),
   .pc_out(if_pc)
@@ -246,10 +243,10 @@ wire [31:0] if_inst, if_pc;
 wire [31:0] id_inst, id_pc;
 wire ifidwen;
 
-Reg #(64, 0) ifid(
+Reg #(64, 64'h0000001300000000) ifid(
   .clk(clock),
-  .rst(reset),
-  .din ({if_inst, if_pc}),
+  .rst(reset | (ifidwen & PCAsrc)),
+  .din ({ifu_rdata, if_pc}),
   .dout({id_inst, id_pc}),
   .wen(ifidwen)
 );
@@ -416,9 +413,6 @@ ysyx_23060221_Idu idu(
   .IDU_ready(IDU_ready),
   .IDU_valid(IDU_valid),
   .EXU_ready(EXU_ready)
-`ifndef SYNTHESIS
-  ,.pc(pc)
-`endif
   );
 
 wire [3:0]  id_aluctr;
@@ -447,7 +441,7 @@ wire ex_regw;
 wire [4:0] ex_waddr;
 
 // aluctr: 4, aluasrc: 1, alubsrc: 2, imm: 32, pc: 32, memop: 3, memwr: 1, src1: 32, src2: 32, mem2reg: 1, regw: 1, waddr: 5
-Reg #(146, 0) idex(
+Reg #(146, {71'b0, 3'b111, 72'b0}) idex(
   .clk(clock),
   .rst(reset),
   .din ({id_aluctr, id_aluasrc, id_alubsrc, id_imm, id_pc, id_memop, id_memwr, id_src1, id_src2, id_memtoreg, id_regw, id_waddr}),
@@ -482,7 +476,7 @@ wire ls_regw;
 wire [4:0] ls_waddr;
 wire lswbwen;
 // memop: 3, memwr: 1, src2: 32, res: 32, mem2reg: 1, regw: 1, waddr: 5
-Reg #(75, 0) exls(
+Reg #(75, {3'b111, 72'b0}) exls(
   .clk(clock),
   .rst(reset),
   .din ({ex_memop, ex_memwr, ex_src2, ex_res, ex_memtoreg, ex_regw, ex_waddr}),
@@ -532,9 +526,6 @@ ysyx_23060221_Lsu lsu(
   .rlast    (lsu_rlast  ),
   .rid      (lsu_rid    ),
   .lswbwen  (lswbwen    )
-`ifndef SYNTHESIS
-  ,.pc(pc)
-`endif
 );
 
 wire [31:0] ls_dataout;

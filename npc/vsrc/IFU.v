@@ -22,7 +22,9 @@ module PC_Gen(
       pc <= 32'h80000000;
   `endif
     end
-    else if (syn) pc <= (PCAsrc) ? (imm + ((PCBsrc) ? rs1 : pc)) : (pc + 4);
+    else if (syn) begin
+      pc <= (PCAsrc) ? (imm + ((PCBsrc) ? rs1 : (pc - 4))) : (pc + 4);
+    end
   end
 endmodule
 
@@ -30,7 +32,6 @@ module ysyx_23060221_Ifu(
   input             clk  ,
   input             rst  ,
   input  [31:0]       pc ,
-  output [31:0]      inst,
   input         IDU_ready,
   output        IFU_valid,
   input         arready  ,
@@ -43,7 +44,6 @@ module ysyx_23060221_Ifu(
   output        rready   ,
   input         rvalid   ,
   input [1:0]   rresp    ,
-  input [31:0]  rdata    ,
   input         rlast    ,
   input [3:0]   rid      ,
   output        ifidwen  
@@ -59,7 +59,7 @@ reg IFU_valid_reg;
 always @(posedge clk) begin
   if (rst)
     IFU_valid_reg <= 0;
-  else if (memfinish) begin
+  else if (ifidwen) begin
     IFU_valid_reg <= 1;
 `ifndef SYNTHESIS
     ifu_count(pc);
@@ -71,21 +71,18 @@ end
 assign memfinish = (rvalid & rready);
 
 
-
 /*************AXI-master**************/
 
 /*************register**************/
 reg        reg_arvalid;
 reg [31:0] reg_araddr ;
 reg        reg_rready ;
-reg [31:0] reg_rdata  ;
 
 /*************wire***************/
 wire rstart;
 /*************assign**************/
-assign inst = reg_rdata[31:0];
 
-assign rstart = syn_IFU_IDU;
+assign rstart = syn_IFU_IDU | start;
 
 assign arvalid = reg_arvalid;
 assign araddr  = reg_araddr ;
@@ -97,6 +94,11 @@ assign arburst = 2'b00      ;
 assign rready  = reg_rready ;
 
 /*************process**************/
+
+reg start;
+always @(posedge clk) begin
+  start <= rst;
+end
 
 always @(posedge clk) begin
   if (rst) reg_arvalid <= 'd0;
@@ -124,13 +126,6 @@ always @(posedge clk) begin
   end
   else 
     reg_rready <= reg_rready;
-end
-
-always @(posedge clk) begin
-  if (rvalid & rready)
-    reg_rdata <= rdata;
-  else 
-    reg_rdata <= reg_rdata;
 end
 
 endmodule

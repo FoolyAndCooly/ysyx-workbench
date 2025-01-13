@@ -83,7 +83,7 @@ extern "C" int pmem_read(int raddr) {
 }
 
 extern "C" void pmem_write(int waddr, char wstrb, int data) {
-  // printf("write %08x, wstrb %08x, data %08x\n", waddr, wstrb, data);
+  printf("write %08x, wstrb %08x, data %08x\n", waddr, wstrb, data);
   uint8_t* addr = guest_to_host(waddr & ~0x3);
   if ((uint32_t)waddr == SERIAL_PORT) {putchar((char)data);}
   for (int i=0; i < 4; i++) {
