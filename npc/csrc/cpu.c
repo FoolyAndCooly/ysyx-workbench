@@ -118,7 +118,7 @@ DEFINE_DISPLAY_FUNCTION(cfi);
 DEFINE_DISPLAY_FUNCTION(csr);
 
 
-void difftest_step(uint32_t pc);
+int difftest_step(uint32_t pc);
 void reset_difftest();
 
 static int sim_time = 0;
@@ -171,10 +171,11 @@ void reset() {
 }
 
 
-static void trace_and_difftest(uint32_t pre_pc) {
-  difftest_step(pre_pc);
+static int trace_and_difftest(uint32_t pre_pc) {
+  return difftest_step(pre_pc);
 }
 
+int jump = 0;
 /* type 0 : run a cycle type 1: run a inst */
 void execute(uint64_t n, int type) {
   uint32_t pre_pc;
@@ -202,7 +203,12 @@ void execute(uint64_t n, int type) {
     inst_cnt++;
 #ifdef DIFFTEST
     if (reset_flag) {reset_difftest();}
-    else if (type) trace_and_difftest(pre_pc);
+    else if (type){ 
+      if (!jump)
+        jump = trace_and_difftest(pre_pc);
+      else
+        jump = 0;
+    }
 #endif
     if (npc_state.state != NPC_RUNNING) break;
   }
