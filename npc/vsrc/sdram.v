@@ -1,4 +1,5 @@
 `ifdef NPC
+`define DEPTH 16
 import "DPI-C" function int pmem_read(input int raddr);
 import "DPI-C" function void pmem_write(input int waddr, input byte wstrb, input int data);
 module sdram(
@@ -103,4 +104,82 @@ always @(posedge clk) begin
 end
 
 endmodule
+
+
+module axi_queue_sdram(
+    input         clk,
+    input         rst,
+
+    // AXI Slave Interface
+    input         awvalid,
+    output        awready,
+    input  [31:0] awaddr,
+    input  [3:0]  awid,
+    input  [7:0]  awlen,
+    input  [2:0]  awsize,
+    input  [1:0]  awburst,
+
+    input         wvalid,
+    output        wready,
+    input  [31:0] wdata,
+    input  [3:0]  wstrb,
+    input         wlast,
+
+    input         arvalid,
+    output        arready,
+    input  [31:0] araddr,
+    input  [3:0]  arid,
+    input  [7:0]  arlen,
+    input  [2:0]  arsize,
+    input  [1:0]  arburst,
+
+    output        bvalid,
+    input         bready,
+    output [1:0]  bresp,
+    output [3:0]  bid,
+
+    output        rvalid,
+    input         rready,
+    output [1:0]  rresp,
+    output [31:0] rdata,
+    output        rlast,
+    output [3:0]  rid
+);
+
+    sdram u_sdram (
+        .clk(clk),
+        .awready  (awready ),
+        .awvalid  (awvalid ),
+        .awaddr   (awaddr  ),
+        .awid     (awid    ),
+        .awlen    (awlen   ),
+        .awsize   (awsize  ),
+        .awburst  (awburst ),
+        .wready   (wready  ),
+        .wvalid   (wvalid  ),
+        .wdata    (wdata   ),
+        .wstrb    (wstrb   ),
+        .wlast    (wlast   ),
+        .bready   (bready  ),
+        .bvalid   (bvalid  ),
+        .bresp    (bresp   ),
+        .bid      (bid     ),
+        .arready  (arready ),
+        .arvalid  (arvalid ),
+        .araddr   (araddr  ),
+        .arid     (arid    ),
+        .arlen    (arlen   ),
+        .arsize   (arsize  ),
+        .arburst  (arburst ),
+        .rready   (rready  ),
+        .rvalid   (rvalid  ),
+        .rresp    (rresp   ),
+        .rdata    (rdata   ),
+        .rlast    (rlast   ),
+        .rid      (rid     )
+    );
+
+endmodule
 `endif
+
+

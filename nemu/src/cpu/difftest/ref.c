@@ -43,8 +43,10 @@ __EXPORT void difftest_regcpy(void *dut, bool direction) {
   }
 }
 
-__EXPORT void difftest_exec(uint64_t n) {
-  cpu_exec(n); 
+__EXPORT int difftest_exec() {
+  uint32_t pre = cpu.pc;
+  cpu_exec(1);
+  return (pre + 4 != cpu.pc);
 }
 
 //__EXPORT uint32_t difftest_memget(uint32_t addr, uint32_t len) {

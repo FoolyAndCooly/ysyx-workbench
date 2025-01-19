@@ -2,7 +2,10 @@
 `define MSTATUS 2'b01
 `define MCAUSE 2'b10
 `define MTVEC 2'b11
+`ifndef SYNTHESIS
 import "DPI-C" function void next(input int valid);
+`endif
+
 module ysyx_23060221_Wbu (
   input         clk,
   input         rst,

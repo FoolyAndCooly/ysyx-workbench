@@ -14,7 +14,7 @@ LDFLAGS   += -T $(AM_HOME)/scripts/linker.ld \
 LDFLAGS   += --gc-sections -e _start
 CFLAGS += -DMAINARGS=\"$(mainargs)\"
 CFLAGS += -I$(AM_HOME)/am/src/riscv/npc/include
-NPCFLAGS += -b
+NPCFLAGS += 
 .PHONY: $(AM_HOME)/am/src/riscv/npc/trm.c
 PLATFORM=NPC
 

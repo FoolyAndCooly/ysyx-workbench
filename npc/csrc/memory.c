@@ -73,6 +73,7 @@ extern "C" void mrom_read(int32_t addr, int32_t *data) {
 
 extern "C" int pmem_read(int raddr) {
   int addr = raddr & ~0x3;
+  printf("read %08x\n", raddr);
   // int offset = (uint32_t)addr - RTC_ADDR;
   // if (offset == 0 || offset == 4) {
   //   uint64_t us =  get_time();

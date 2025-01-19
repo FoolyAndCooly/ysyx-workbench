@@ -153,14 +153,6 @@ wire [31:0] lsu_rdata   ;
 wire        lsu_rlast   ;
 wire [3:0]  lsu_rid     ;
 
-`ifndef SYNTHESIS
-reg next_reg;
-always @(posedge clock) begin
-  if (reset) next_reg <= 0;
-  else next_reg <= LSU_valid;
-end
-`endif
-
 ysyx_23060221_Ifu ifu(
   .clk      (clock      ),
   .rst      (reset      ),
@@ -291,7 +283,8 @@ PCCtr pcctr(
 );
 
 ysyx_23060221_Arbiter arbiter(
-  .clk         (clock)       ,
+  .clk         (clock          ),
+  .rst         (reset          ),
   .ifu_arready (icache_arready ),
   .ifu_arvalid (icache_arvalid ), 
   .ifu_araddr  (icache_araddr  ), 
@@ -404,6 +397,7 @@ ysyx_23060221_Idu idu(
   .branch(branch),
   .Ra(Ra),
   .Rb(Rb),
+  .waddr(id_waddr),
   .memop(id_memop),
   .memtoreg(id_memtoreg),
   .memwr(id_memwr),
@@ -446,7 +440,7 @@ Reg #(146, {71'b0, 3'b111, 72'b0}) idex(
   .rst(reset),
   .din ({id_aluctr, id_aluasrc, id_alubsrc, id_imm, id_pc, id_memop, id_memwr, id_src1, id_src2, id_memtoreg, id_regw, id_waddr}),
   .dout({ex_aluctr, ex_aluasrc, ex_alubsrc, ex_imm, ex_pc, ex_memop, ex_memwr, ex_src1, ex_src2, ex_memtoreg, ex_regw, ex_waddr}),
-  .wen(IFU_valid & IDU_valid)
+  .wen(IFU_valid & IDU_ready)
 );
 
 ysyx_23060221_Exu exu(
@@ -481,7 +475,7 @@ Reg #(75, {3'b111, 72'b0}) exls(
   .rst(reset),
   .din ({ex_memop, ex_memwr, ex_src2, ex_res, ex_memtoreg, ex_regw, ex_waddr}),
   .dout({ls_memop, ls_memwr, ls_src2, ls_res, ls_memtoreg, ls_regw, ls_waddr}),
-  .wen(IDU_valid & EXU_valid)
+  .wen(IDU_valid & EXU_ready)
 );
 
 ysyx_23060221_Lsu lsu(
@@ -722,8 +716,9 @@ ysyx_23060221 cpu(
   .io_slave_rid     ()
 );
 
-sdram sd(
+axi_queue_sdram sd(
   .clk    (clock  ), 
+  .rst    (reset  ),
   .awready(awready),  
   .awvalid(awvalid), 
   .awaddr (awaddr ),  

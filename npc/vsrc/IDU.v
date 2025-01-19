@@ -287,7 +287,7 @@ always @(*) begin
               if (inst20) begin 
 	        ctr = {23{1'b1}};
 `ifndef SYNTHESIS
-	        set_npc_state(3,3); 
+	        set_npc_state(2,0); 
 `endif
 	      end //ebreak
               else if (inst21) begin ctr = 23'b00100011101000000000111; end // mret
@@ -331,6 +331,7 @@ module ysyx_23060221_Idu(
   output [2:0] branch,
   output [4:0] Ra,
   output [4:0] Rb,
+  output [4:0] waddr,
   output [2:0] memop,
   output memtoreg,
   output memwr,
@@ -344,6 +345,7 @@ module ysyx_23060221_Idu(
 
   assign Ra = inst[19:15];
   assign Rb = inst[24:20];
+  assign waddr = inst[11:7];
   wire [2:0] extop;
 
   reg IDU_ready_reg, IDU_valid_reg;
@@ -361,6 +363,9 @@ module ysyx_23060221_Idu(
     if (rst) IDU_valid_reg <= 0;
     else if (syn_IFU_IDU) IDU_valid_reg <= 1;
     else if (syn_IDU_EXU) IDU_valid_reg <= 0;
+  end
+  always @(posedge clk) begin
+    $display("inst: %08x, memop %d", inst, memop);
   end
   ContrGen cg (
   .rst(rst),

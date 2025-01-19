@@ -53,7 +53,8 @@ wire syn_EXU_LSU = (EXU_valid & LSU_ready);
 wire syn_LSU_WBU = (LSU_valid & WBU_ready);
 assign LSU_ready = syn_LSU_WBU | LSU_ready_reg;
 assign LSU_valid = LSU_valid_reg;
-assign lswbwen = memfinish;
+assign lswbwen = (memop != 3'b111) ? memfinish : syn_EXU_LSU;
+
 always @(posedge clk) begin
   if (rst) LSU_ready_reg <= 1;
   else if (syn_LSU_WBU) LSU_ready_reg <= 1;
@@ -98,39 +99,39 @@ always @(*) begin
   case (memop)
     3'b000: begin 
       case (araddr[1:0])
-        2'b00: data_out = {{24{reg_rdata[7]}},  reg_rdata[7:0]};
-        2'b01: data_out = {{24{reg_rdata[15]}}, reg_rdata[15:8]};
-	2'b10: data_out = {{24{reg_rdata[23]}}, reg_rdata[23:16]};
-	2'b11: data_out = {{24{reg_rdata[31]}}, reg_rdata[31:24]};
+        2'b00: data_out = {{24{rdata[7]}},  rdata[7:0]};
+        2'b01: data_out = {{24{rdata[15]}}, rdata[15:8]};
+	2'b10: data_out = {{24{rdata[23]}}, rdata[23:16]};
+	2'b11: data_out = {{24{rdata[31]}}, rdata[31:24]};
       endcase
     end
     3'b001: begin
       case (araddr[1:0])
-        2'b00: data_out = {{16{reg_rdata[15]}}, reg_rdata[15:0]};
-        2'b01: data_out = {{16{reg_rdata[23]}}, reg_rdata[23:8]};
-	2'b10: data_out = {{16{reg_rdata[31]}}, reg_rdata[31:16]};
+        2'b00: data_out = {{16{rdata[15]}}, rdata[15:0]};
+        2'b01: data_out = {{16{rdata[23]}}, rdata[23:8]};
+	2'b10: data_out = {{16{rdata[31]}}, rdata[31:16]};
 	default: begin data_out = 0; end
       endcase
     end
     3'b010: begin
       case (araddr[1:0])
-        2'b00: data_out = reg_rdata[31:0];
+        2'b00: data_out = rdata[31:0];
 	default: begin data_out = 0; end
       endcase
     end
     3'b100: begin
       case (araddr[1:0])
-        2'b00: data_out = {24'b0, reg_rdata[7:0]};
-        2'b01: data_out = {24'b0, reg_rdata[15:8]};
-	2'b10: data_out = {24'b0, reg_rdata[23:16]};
-	2'b11: data_out = {24'b0, reg_rdata[31:24]};
+        2'b00: data_out = {24'b0, rdata[7:0]};
+        2'b01: data_out = {24'b0, rdata[15:8]};
+	2'b10: data_out = {24'b0, rdata[23:16]};
+	2'b11: data_out = {24'b0, rdata[31:24]};
       endcase
     end
     3'b101: begin
        case (araddr[1:0])
-        2'b00: data_out = {16'b0, reg_rdata[15:0]};
-        2'b01: data_out = {16'b0, reg_rdata[23:8]};
-	2'b10: data_out = {16'b0, reg_rdata[31:16]};
+        2'b00: data_out = {16'b0, rdata[15:0]};
+        2'b01: data_out = {16'b0, rdata[23:8]};
+	2'b10: data_out = {16'b0, rdata[31:16]};
         default: begin data_out = 0; end
       endcase     
     end
@@ -148,7 +149,6 @@ reg [31:0] reg_wdata  ;
 reg        reg_arvalid;
 reg [31:0] reg_araddr ;
 reg        reg_rready ;
-reg [31:0] reg_rdata  ;
 reg        reg_bready ;
 reg [3:0]  reg_wstrb  ;
 
@@ -259,13 +259,6 @@ always @(posedge clk) begin
     reg_rready <= 'd1;
   else 
     reg_rready <= reg_rready;
-end
-
-always @(posedge clk) begin
-  if (rvalid & rready)
-    reg_rdata <= rdata;
-  else 
-    reg_rdata <= reg_rdata;
 end
 
 endmodule
