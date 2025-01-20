@@ -46,6 +46,7 @@ module ysyx_23060221_Ifu(
   input [1:0]   rresp    ,
   input         rlast    ,
   input [3:0]   rid      ,
+  input         stall    ,
   output        ifidwen  
   );
 
@@ -53,7 +54,7 @@ module ysyx_23060221_Ifu(
 wire memfinish;
 wire syn_IFU_IDU = IFU_valid & IDU_ready;
 assign IFU_valid = IFU_valid_reg;
-assign ifidwen = memfinish;
+assign ifidwen = (memfinish | memfinish_reg) & ~stall;
 reg IFU_valid_reg;
 
 always @(posedge clk) begin
@@ -69,7 +70,13 @@ always @(posedge clk) begin
 end
 
 assign memfinish = (rvalid & rready);
-
+reg memfinish_reg;
+always @(posedge clk) begin
+  if (rst) memfinish_reg <= 0;
+  else if ((memfinish_reg == 0) && stall) memfinish_reg <= memfinish;
+  else if (ifidwen) memfinish_reg <= 0;
+  else memfinish_reg <= memfinish_reg;
+end
 
 /*************AXI-master**************/
 

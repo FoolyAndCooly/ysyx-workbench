@@ -333,20 +333,24 @@ module ysyx_23060221_Idu(
   output [4:0] Rb,
   output [4:0] waddr,
   output [2:0] memop,
+  input wread,
   output memtoreg,
   output memwr,
   output [31:0] imm,
   output regw,
-  output reg IDU_ready,
-  output reg IDU_valid,
-  input reg EXU_ready,
-  input reg IFU_valid
+  output memread,
+  output [2:0] extop,
+  output idexwen,
+  input stall,
+  output IDU_ready,
+  output IDU_valid,
+  input EXU_ready,
+  input IFU_valid
 );
 
   assign Ra = inst[19:15];
   assign Rb = inst[24:20];
   assign waddr = inst[11:7];
-  wire [2:0] extop;
 
   reg IDU_ready_reg, IDU_valid_reg;
   wire syn_IFU_IDU = (IFU_valid & IDU_ready);
@@ -364,9 +368,27 @@ module ysyx_23060221_Idu(
     else if (syn_IFU_IDU) IDU_valid_reg <= 1;
     else if (syn_IDU_EXU) IDU_valid_reg <= 0;
   end
+
+  assign idexwen = (syn_IFU_IDU | syn_reg) & ~stall;
+  reg syn_reg;
   always @(posedge clk) begin
-    $display("inst: %08x, memop %d", inst, memop);
+    if (rst) syn_reg <= 0;
+    else if ((syn_reg == 0) && stall) syn_reg <= syn_IFU_IDU;
+    else if (idexwen) syn_reg <= 0;
+    else syn_reg <= syn_reg;
   end
+
+  assign memread = memread_reg;
+  reg memread_reg;
+  always @(posedge clk) begin
+    if (rst) begin
+      memread_reg <= 0;
+    end
+    else if (wread) begin
+      memread_reg <= memtoreg;
+    end
+  end
+
   ContrGen cg (
   .rst(rst),
   .op_6_2 (inst[6:2]), 
