@@ -15,7 +15,7 @@ LDFLAGS   += --gc-sections -e _start
 LDFLAGS   += --print-map
 CFLAGS += -DMAINARGS=\"$(mainargs)\"
 CFLAGS += -I$(AM_HOME)/am/src/riscv/ysyxsoc/include
-YSYXSOCFLAGS += -b
+YSYXSOCFLAGS += 
 PLATFORM=SOC
 .PHONY: $(AM_HOME)/am/src/riscv/ysyxsoc/trm.c
 
