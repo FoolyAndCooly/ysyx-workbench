@@ -39,6 +39,12 @@ module ysyx_23060221_Exu(
   input  [3:0]  aluctr   ,
   input         aluasrc  ,
   input  [1:0]  alubsrc  ,
+  input         ca1      ,
+  input         ca2      ,
+  input         cb1      ,
+  input         cb2      ,
+  input  [31:0] exlssrc  ,
+  input  [31:0] lswbsrc  ,
   output [31:0] res      ,
   output        EXU_ready,
   output        EXU_valid,
@@ -65,12 +71,12 @@ module ysyx_23060221_Exu(
 wire [31:0] a, b;
 
 MuxKey #(2, 1, 32)  i1 (a, aluasrc, {
-  1'b0, src1,
+  1'b0, (ca1) ? exlssrc : ((ca2) ? lswbsrc : src1),
   1'b1, pc
 });
 
 MuxKey #(3, 2, 32) i2 (b, alubsrc, {
-  2'b00, src2,
+  2'b00, (cb1) ? exlssrc : ((cb2) ? lswbsrc : src2),
   2'b01, imm,
   2'b10, 32'd4
 });

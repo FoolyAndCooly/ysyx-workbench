@@ -73,7 +73,7 @@ extern "C" void mrom_read(int32_t addr, int32_t *data) {
 
 extern "C" int pmem_read(int raddr) {
   int addr = raddr & ~0x3;
-  printf("read %08x\n", raddr);
+  // printf("read %08x\n", raddr);
   // int offset = (uint32_t)addr - RTC_ADDR;
   // if (offset == 0 || offset == 4) {
   //   uint64_t us =  get_time();
@@ -84,7 +84,7 @@ extern "C" int pmem_read(int raddr) {
 }
 
 extern "C" void pmem_write(int waddr, char wstrb, int data) {
-  printf("write %08x, wstrb %08x, data %08x\n", waddr, wstrb, data);
+  // printf("write %08x, wstrb %08x, data %08x\n", waddr, wstrb, data);
   uint8_t* addr = guest_to_host(waddr & ~0x3);
   if ((uint32_t)waddr == SERIAL_PORT) {putchar((char)data);}
   for (int i=0; i < 4; i++) {

@@ -73,7 +73,7 @@ assign memfinish = (rvalid & rready);
 reg memfinish_reg;
 always @(posedge clk) begin
   if (rst) memfinish_reg <= 0;
-  else if ((memfinish_reg == 0) && stall) memfinish_reg <= memfinish;
+  else if ((memfinish_reg == 0) & stall) memfinish_reg <= memfinish;
   else if (ifidwen) memfinish_reg <= 0;
   else memfinish_reg <= memfinish_reg;
 end

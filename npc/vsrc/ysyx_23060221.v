@@ -227,11 +227,10 @@ wire [31:0] if_inst, if_pc;
 wire [31:0] id_inst, id_pc;
 wire ifidwen;
 
-wire memread;
 wire [2:0] extop;
-wire rseq1 = (ex_waddr==Ra);
-wire rseq2 = (ex_waddr==Rb && ((extop == 3'b011) | (extop == 3'b010)));
-wire loaduse = (memread & (rseq1 | rseq2) ) & ~(id_waddr == ex_waddr);
+wire loaduse_rseq1 = ex_regw & (ex_waddr==Ra && ((extop == 3'b011) | (extop == 3'b010) | (extop == 3'b000) | (extop == 3'b111)));
+wire loaduse_rseq2 = ex_regw & (ex_waddr==Rb && ((extop == 3'b011) | (extop == 3'b010) | (extop == 3'b111)));
+wire loaduse = (ex_memtoreg & (loaduse_rseq1 | loaduse_rseq2) ) & ~(id_waddr == ex_waddr);
 wire stall = (memdo_reg & ~lswbwen) ? loaduse : 0;
 
 reg memdo_reg;
@@ -413,7 +412,6 @@ ysyx_23060221_Idu idu(
   .imm(id_imm),
   .regw(id_regw),
   .wread(ifidwen),
-  .memread(memread),
   .extop(extop),
   .idexwen(idexwen),
   .stall(stall),
@@ -422,6 +420,30 @@ ysyx_23060221_Idu idu(
   .IDU_valid(IDU_valid),
   .EXU_ready(EXU_ready)
   );
+
+wire ca1;
+wire ca2;
+wire cb1;
+wire cb2;
+wire [4:0] ex_ra;
+wire [4:0] ex_rb;
+wire [2:0] ex_extop;
+
+bypass bp (
+  .idexRs1 (ex_ra),
+  .idexRs2 (ex_rb),
+  .exlsRd  (ls_waddr),
+  .exlswreg(ls_regw),
+  .lswbwreg(wb_regw),
+  .lswbRd  (wb_waddr),
+  .ca1(ca1),
+  .ca2(ca2),
+  .cb1(cb1),
+  .cb2(cb2),
+  .idexRs1able((ex_extop == 3'b011) | (ex_extop == 3'b010) | (ex_extop == 3'b000)),
+  .idexRs2able((ex_extop == 3'b011) | (ex_extop == 3'b010)),
+  .loadused(ls_memtoreg)
+);
 
 wire [3:0]  id_aluctr;
 wire id_aluasrc;
@@ -448,15 +470,15 @@ wire ex_memtoreg;
 wire ex_regw;
 wire [4:0] ex_waddr;
 
-wire [31:0] idu_src1 = (rseq1) ?((lswbwen) ? ls_dataout : wb_dataout) : id_src1;
-wire [31:0] idu_src2 = (rseq2) ?((lswbwen) ? ls_dataout : wb_dataout) : id_src1;
+wire [31:0] idu_src1 = (loaduse_rseq1 & loaduse) ?((lswbwen) ? ls_dataout : wb_dataout) : id_src1;
+wire [31:0] idu_src2 = (loaduse_rseq2 & loaduse) ?((lswbwen) ? ls_dataout : wb_dataout) : id_src2;
 
 // aluctr: 4, aluasrc: 1, alubsrc: 2, imm: 32, pc: 32, memop: 3, memwr: 1, src1: 32, src2: 32, mem2reg: 1, regw: 1, waddr: 5
-Reg #(146, {71'b0, 3'b111, 72'b0}) idex(
+Reg #(159, {84'b0, 3'b111, 72'b0}) idex(
   .clk(clock),
   .rst(reset),
-  .din ({id_aluctr, id_aluasrc, id_alubsrc, id_imm, id_pc, id_memop, id_memwr, idu_src1, idu_src2, id_memtoreg, id_regw, id_waddr}),
-  .dout({ex_aluctr, ex_aluasrc, ex_alubsrc, ex_imm, ex_pc, ex_memop, ex_memwr, ex_src1, ex_src2, ex_memtoreg, ex_regw, ex_waddr}),
+  .din ({extop,    Ra,    Rb,    id_aluctr, id_aluasrc, id_alubsrc, id_imm, id_pc, id_memop, id_memwr, idu_src1, idu_src2, id_memtoreg, id_regw, id_waddr}),
+  .dout({ex_extop, ex_ra, ex_rb, ex_aluctr, ex_aluasrc, ex_alubsrc, ex_imm, ex_pc, ex_memop, ex_memwr, ex_src1, ex_src2, ex_memtoreg, ex_regw, ex_waddr}),
   .wen(idexwen)
 );
 
@@ -470,6 +492,12 @@ ysyx_23060221_Exu exu(
   .aluctr(ex_aluctr),
   .aluasrc(ex_aluasrc),
   .alubsrc(ex_alubsrc),
+  .ca1(ca1),
+  .ca2(ca2),
+  .cb1(cb1),
+  .cb2(cb2),
+  .exlssrc(ls_res),
+  .lswbsrc(wd),
   .res(ex_res),
   .IDU_valid(IDU_valid),
   .EXU_ready(EXU_ready),

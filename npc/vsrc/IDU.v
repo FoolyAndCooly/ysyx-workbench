@@ -29,6 +29,7 @@ module ImmGen(
     3'b011, immB,
     3'b100, immJ
   });
+  // 3'b111, R
 endmodule
 
 module PCCtr(
@@ -338,7 +339,6 @@ module ysyx_23060221_Idu(
   output memwr,
   output [31:0] imm,
   output regw,
-  output memread,
   output [2:0] extop,
   output idexwen,
   input stall,
@@ -376,17 +376,6 @@ module ysyx_23060221_Idu(
     else if ((syn_reg == 0) && stall) syn_reg <= syn_IFU_IDU;
     else if (idexwen) syn_reg <= 0;
     else syn_reg <= syn_reg;
-  end
-
-  assign memread = memread_reg;
-  reg memread_reg;
-  always @(posedge clk) begin
-    if (rst) begin
-      memread_reg <= 0;
-    end
-    else if (wread) begin
-      memread_reg <= memtoreg;
-    end
   end
 
   ContrGen cg (
