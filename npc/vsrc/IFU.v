@@ -9,6 +9,7 @@ module PC_Gen(
   input syn,
   input [31:0] rs1,
   input [31:0] imm,
+  input [31:0] pc_in,
   output [31:0] pc_out
 );
   reg [31:0] pc;
@@ -23,7 +24,7 @@ module PC_Gen(
   `endif
     end
     else if (syn) begin
-      pc <= (PCAsrc) ? (imm + ((PCBsrc) ? rs1 : (pc - 4))) : (pc + 4);
+      pc <= (PCAsrc) ? (imm + ((PCBsrc) ? rs1 : (pc_in))) : (pc + 4);
     end
   end
 endmodule
@@ -46,36 +47,23 @@ module ysyx_23060221_Ifu(
   input [1:0]   rresp    ,
   input         rlast    ,
   input [3:0]   rid      ,
-  input         stall    ,
-  output        ifidwen  
+  input         stall    
   );
 
 /*************control**************/
-wire memfinish;
 wire syn_IFU_IDU = IFU_valid & IDU_ready;
-assign IFU_valid = IFU_valid_reg;
-assign ifidwen = (memfinish | memfinish_reg) & ~stall;
+assign IFU_valid = ((rvalid & rready) | IFU_valid_reg) & ~stall;
 reg IFU_valid_reg;
-
 always @(posedge clk) begin
-  if (rst)
+  if (rst) IFU_valid_reg <= 0;
+  else if ((IFU_valid_reg == 0) & stall) IFU_valid_reg <= (rvalid & rready);
+  else if (syn_IFU_IDU) begin 
     IFU_valid_reg <= 0;
-  else if (ifidwen) begin
-    IFU_valid_reg <= 1;
 `ifndef SYNTHESIS
     ifu_count(pc);
 `endif
   end
-  else if (syn_IFU_IDU) IFU_valid_reg <= 0;
-end
-
-assign memfinish = (rvalid & rready);
-reg memfinish_reg;
-always @(posedge clk) begin
-  if (rst) memfinish_reg <= 0;
-  else if ((memfinish_reg == 0) & stall) memfinish_reg <= memfinish;
-  else if (ifidwen) memfinish_reg <= 0;
-  else memfinish_reg <= memfinish_reg;
+  else IFU_valid_reg <= IFU_valid_reg;
 end
 
 /*************AXI-master**************/
@@ -89,8 +77,7 @@ reg        reg_rready ;
 wire rstart;
 /*************assign**************/
 
-assign rstart = syn_IFU_IDU | start;
-
+assign rstart =  start;
 assign arvalid = reg_arvalid;
 assign araddr  = reg_araddr ;
 assign arid    = 'd0        ;
@@ -104,7 +91,9 @@ assign rready  = reg_rready ;
 
 reg start;
 always @(posedge clk) begin
-  start <= rst;
+  if (rst) start <= rst;
+  else if (syn_IFU_IDU) start <= 1;
+  else if (start) start <= 0;
 end
 
 always @(posedge clk) begin

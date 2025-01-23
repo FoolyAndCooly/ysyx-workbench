@@ -44,16 +44,14 @@ module ysyx_23060221_Lsu(
   input [1:0]   rresp    ,
   input [31:0]  rdata    ,
   input         rlast    ,
-  input [3:0]   rid      ,
-  output        lswbwen  
+  input [3:0]   rid      
 );
 
 reg LSU_ready_reg, LSU_valid_reg;
 wire syn_EXU_LSU = (EXU_valid & LSU_ready);
 wire syn_LSU_WBU = (LSU_valid & WBU_ready);
 assign LSU_ready = syn_LSU_WBU | LSU_ready_reg;
-assign LSU_valid = LSU_valid_reg;
-assign lswbwen = (memop != 3'b111) ? memfinish : syn_EXU_LSU;
+assign LSU_valid = (memop == 3'b111) ? LSU_valid_reg : memfinish;
 
 always @(posedge clk) begin
   if (rst) LSU_ready_reg <= 1;
@@ -63,14 +61,8 @@ end
 
 always @(posedge clk) begin
   if (rst) LSU_valid_reg <= 0;
-  else if (memop != 3'b111) begin
-    if (memfinish) LSU_valid_reg <= 1;
-    else if (syn_LSU_WBU) LSU_valid_reg <= 0;
-  end
-  else begin
-    if (syn_EXU_LSU) LSU_valid_reg <= 1;
-    else if (syn_LSU_WBU) LSU_valid_reg <= 0;
-  end
+  else if (syn_EXU_LSU) LSU_valid_reg <= 1;
+  else if (syn_LSU_WBU) LSU_valid_reg <= 0;
 end
 
 wire memfinish = (bvalid & bready) | (rvalid & rready);
@@ -158,8 +150,13 @@ wire rstart;
 wire [3:0] wstrb0;
 
 /*************assign**************/
-assign wstart = syn_EXU_LSU & memwr & (memop != 3'b111);
-assign rstart = syn_EXU_LSU & ~memwr & (memop != 3'b111) ;
+reg syn_EXU_LSU_reg;
+always @(posedge clk) begin
+  if (rst) syn_EXU_LSU_reg <= 0;
+  else syn_EXU_LSU_reg <= syn_EXU_LSU;
+end
+assign wstart = syn_EXU_LSU_reg & memwr & (memop != 3'b111);
+assign rstart = syn_EXU_LSU_reg & ~memwr & (memop != 3'b111) ;
 
 assign awvalid = reg_awvalid;
 assign awaddr  = reg_awaddr ;

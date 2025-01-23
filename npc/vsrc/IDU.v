@@ -334,13 +334,11 @@ module ysyx_23060221_Idu(
   output [4:0] Rb,
   output [4:0] waddr,
   output [2:0] memop,
-  input wread,
   output memtoreg,
   output memwr,
   output [31:0] imm,
   output regw,
   output [2:0] extop,
-  output idexwen,
   input stall,
   output IDU_ready,
   output IDU_valid,
@@ -356,7 +354,6 @@ module ysyx_23060221_Idu(
   wire syn_IFU_IDU = (IFU_valid & IDU_ready);
   wire syn_IDU_EXU = (IDU_valid & EXU_ready);
   assign IDU_ready = syn_IDU_EXU | IDU_ready_reg;
-  assign IDU_valid = IDU_valid_reg;
   always @(posedge clk) begin
     if (rst) IDU_ready_reg <= 1;
     else if (syn_IDU_EXU) IDU_ready_reg <= 1;
@@ -369,13 +366,19 @@ module ysyx_23060221_Idu(
     else if (syn_IDU_EXU) IDU_valid_reg <= 0;
   end
 
-  assign idexwen = (syn_IFU_IDU | syn_reg) & ~stall;
-  reg syn_reg;
+  assign IDU_valid = (syn_delay | IDU_valid_reg) & ~stall;
+
+  reg syn_delay;
   always @(posedge clk) begin
-    if (rst) syn_reg <= 0;
-    else if ((syn_reg == 0) && stall) syn_reg <= syn_IFU_IDU;
-    else if (idexwen) syn_reg <= 0;
-    else syn_reg <= syn_reg;
+    if (rst) syn_delay <= 0;
+    else syn_delay <= syn_IFU_IDU;
+  end
+
+  always @(posedge clk) begin
+    if (rst) IDU_valid_reg <= 0;
+    else if ((IDU_valid_reg == 0) && stall) IDU_valid_reg <= syn_delay;
+    else if (syn_IDU_EXU) IDU_valid_reg <= 0;
+    else IDU_valid_reg <= IDU_valid_reg;
   end
 
   ContrGen cg (
