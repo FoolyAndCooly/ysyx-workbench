@@ -52,11 +52,11 @@ module ysyx_23060221_Ifu(
 
 /*************control**************/
 wire syn_IFU_IDU = IFU_valid & IDU_ready;
-assign IFU_valid = ((rvalid & rready) | IFU_valid_reg) & ~stall;
+assign IFU_valid = IFU_valid_reg & ~stall;
 reg IFU_valid_reg;
 always @(posedge clk) begin
   if (rst) IFU_valid_reg <= 0;
-  else if ((IFU_valid_reg == 0) & stall) IFU_valid_reg <= (rvalid & rready);
+  else if (IFU_valid_reg == 0) IFU_valid_reg <= (rvalid & rready);
   else if (syn_IFU_IDU) begin 
     IFU_valid_reg <= 0;
 `ifndef SYNTHESIS

@@ -64,8 +64,8 @@ extern "C" void sdram_write(char ba, short row, short col, short data, short dqm
 }
 
 extern "C" void flash_read(int32_t addr, int32_t *data) {
+  // printf("read %08x\n", addr);
   *data = *(uint32_t*)(flash_guest_to_host(addr & ~0x3));
-  // printf("read %08x: %08x\n", addr, *data);
 }
 extern "C" void mrom_read(int32_t addr, int32_t *data) {
   *data = *(uint32_t*)(guest_to_host(addr & ~0x3));

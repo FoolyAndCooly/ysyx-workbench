@@ -35,14 +35,17 @@ void reset_difftest() {
 
   ref_difftest_raise_intr = (void(*)(uint64_t))dlsym(handle, "difftest_raise_intr");
   assert(ref_difftest_raise_intr);
-
+#ifndef SOC
   ref_difftest_memcpy(CONFIG_MBASE, guest_to_host(CONFIG_MBASE), img_size, DIFFTEST_TO_REF);
+#else
+  ref_difftest_memcpy(CONFIG_MBASE, flash_guest_to_host(0), img_size, DIFFTEST_TO_REF);
+#endif
   CPU_state cpu;
   for (int i = 0; i < 32; i++) {
     cpu.gpr[i] = GPRi;
   }
 #ifdef SOC
-  cpu.pc = 0x20000000;
+  cpu.pc = 0x30000000;
 #else
   cpu.pc = 0x80000000;
 #endif
