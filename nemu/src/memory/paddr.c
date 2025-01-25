@@ -18,15 +18,17 @@
 #include <device/mmio.h>
 #include <isa.h>
 
+#ifndef SOC
 #if   defined(CONFIG_PMEM_MALLOC)
 static uint8_t *pmem = NULL;
 #else // CONFIG_PMEM_GARRAY
 static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
 #endif
-
+#else
 static uint8_t flash[FLASH_SIZE] PG_ALIGN = {};
 
 static uint8_t sdram[SDRAM_SIZE] PG_ALIGN = {};
+#endif
 
 uint8_t* guest_to_host(paddr_t paddr) { 
   uint8_t* ret = NULL;
@@ -66,7 +68,6 @@ void init_mem() {
 
 word_t paddr_read(paddr_t addr, int len) {
   IFDEF(CONFIG_MTRACE, printf("read %x, len: %d, data: %x\n", addr, len, pmem_read(addr, len)));
-printf("read %x, len: %d, data: %x\n", addr, len, pmem_read(addr, len));
 #ifndef CONFIG_SOC
   if (likely(in_pmem(addr))) return pmem_read(addr, len);
 #else
@@ -81,7 +82,6 @@ printf("read %x, len: %d, data: %x\n", addr, len, pmem_read(addr, len));
 
 void paddr_write(paddr_t addr, int len, word_t data) {
   IFDEF(CONFIG_MTRACE,printf("write %x, len: %d, data: %x\n", addr, len, data));
-  printf("write %x, len: %d, data: %x\n", addr, len, data);
 #ifndef CONFIG_SOC
   if (likely(in_pmem(addr))) { pmem_write(addr, len, data); return; }
 #else

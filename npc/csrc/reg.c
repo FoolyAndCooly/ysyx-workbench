@@ -11,18 +11,29 @@ const char *regs[] = {
 };
 
 void reg_display() {
+  printf("cpu\n");
   for (int i = 0; i < 32; i++) {
     printf("%-8s0x%08x\n", regs[i], GPRi);
   }
 }
+extern CPU_state ref_r;
 
-bool difftest_checkregs(CPU_state *ref_r, uint32_t pc) {
+void ref_display() {
+  printf("ref\n");
   for (int i = 0; i < 32; i++) {
-    if (GPRi != ref_r->gpr[i]) {
-      printf("%d th reg is wrong\nref reg :0x%08x\ncpu reg :0x%08x\n",i,ref_r->gpr[i],GPRi);
-      return false;
+    printf("%-8s0x%08x\n", regs[i], ref_r.gpr[i]);
+  }
+}
+
+bool difftest_checkregs(CPU_state *ref, uint32_t pc) {
+  bool flag = true;
+  for (int i = 0; i < 32; i++) {
+    if (GPRi != ref->gpr[i]) {
+      printf("%d th reg is wrong\nref reg :0x%08x\ncpu reg :0x%08x\n",i,ref->gpr[i],GPRi);
+      flag = false;
     }
   }
+  return flag;
   // if (ref_r->pc != top->rootp->top__DOT__pc) {
     // printf("pc is wrong\nref pc : 0x%08x\ncpu pc : 0x%08x\n", ref_r->pc, top->rootp->top__DOT__pc);
     // printf("pc: 0x%08x\n", pc);

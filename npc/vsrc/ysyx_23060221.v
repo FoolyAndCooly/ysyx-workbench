@@ -162,7 +162,8 @@ ysyx_23060221_Ifu ifu(
   .rresp    (ifu_rresp  ),
   .rlast    (ifu_rlast  ),
   .rid      (ifu_rid    ),
-  .stall    (stall      )
+  .stall    (stall      ),
+  .delay    (PCAsrc & ifid_pulse)
   );
 
 wire         icache_arready;
@@ -210,14 +211,21 @@ cache icache(
   .out_rid    (icache_rid    )
   ); 
 
+reg IDU_reg;
+always @(posedge clock) begin
+  if (reset) IDU_reg <= 0;
+  else IDU_reg <= IDU_valid;
+end
+wire ifid_pulse = IDU_valid & ~IDU_reg;
+
 wire pc_update;
 wire [31:0] pc_in;
 PC_Gen pcg(
   .clk(clock),
   .rst(reset),
-  .PCAsrc(PCAsrc),
+  .PCAsrc(PCAsrc & ifid_pulse),
   .PCBsrc(PCBsrc),
-  .syn(IFU_valid & IDU_ready),
+  .syn((IFU_valid & IDU_ready) | (PCAsrc & ifid_pulse)),
   .rs1(id_src1),
   .imm(id_imm),
   .pc_in(id_pc),
@@ -230,7 +238,7 @@ wire [31:0] id_inst, id_pc;
 wire [2:0] extop;
 wire loaduse_rseq1 = ex_regw & (ex_waddr==Ra && ((extop == 3'b011) | (extop == 3'b010) | (extop == 3'b000) | (extop == 3'b111)));
 wire loaduse_rseq2 = ex_regw & (ex_waddr==Rb && ((extop == 3'b011) | (extop == 3'b010) | (extop == 3'b111)));
-wire loaduse = (ex_memtoreg & (loaduse_rseq1 | loaduse_rseq2) ) & ~(id_waddr == ex_waddr);
+wire loaduse = (ex_memtoreg & (loaduse_rseq1 | loaduse_rseq2) ) & ~(id_pc == ex_pc);
 wire stall = (memdo_reg & ~(LSU_valid & WBU_ready)) ? loaduse : 0;
 
 reg memdo_reg;
@@ -238,12 +246,11 @@ always @(posedge clock) begin
   if (reset) memdo_reg <= 0;
   else if (IDU_valid & EXU_ready) memdo_reg <= 1;
   else if (LSU_valid & WBU_ready) memdo_reg <= 0;
-  else memdo_reg <= memdo_reg;
 end
 
 Reg #(64, 64'h0000001300000000) ifid(
   .clk(clock),
-  .rst(reset | ((IFU_valid & IDU_ready) & PCAsrc)),
+  .rst(reset),
   .din ({ifu_rdata, ifu_araddr}),
   .dout({id_inst, id_pc}),
   .wen(IFU_valid & IDU_ready)
@@ -282,8 +289,8 @@ RegisterFile rf(
 PCCtr pcctr(
   .branch(branch),
   .signal(id_aluctr[3]),
-  .rs1(id_src1),
-  .rs2(id_src2),
+  .rs1(idu_src1),
+  .rs2(idu_src2),
   .PCAsrc(PCAsrc),
   .PCBsrc(PCBsrc)
 );

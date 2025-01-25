@@ -12,7 +12,7 @@ static int port;
 
 void (*ref_difftest_memcpy)(uint32_t addr, void *buf, size_t n, int direction) = NULL;
 void (*ref_difftest_regcpy)(void *dut, int direction) = NULL;
-int  (*ref_difftest_exec)(void) = NULL;
+void (*ref_difftest_exec)(void) = NULL;
 void (*ref_difftest_raise_intr)(uint64_t NO) = NULL;
 
 enum {DIFFTEST_TO_DUT, DIFFTEST_TO_REF};
@@ -29,8 +29,7 @@ void reset_difftest() {
 
   ref_difftest_regcpy = (void(*)(void *, int))dlsym(handle, "difftest_regcpy");
   assert(ref_difftest_regcpy);
-
-  ref_difftest_exec = (int(*)())dlsym(handle, "difftest_exec");
+  ref_difftest_exec = (void(*)())dlsym(handle, "difftest_exec");
   assert(ref_difftest_exec);
 
   ref_difftest_raise_intr = (void(*)(uint64_t))dlsym(handle, "difftest_raise_intr");
@@ -68,19 +67,23 @@ void init_difftest(char *arg_ref_so_file, long arg_img_size, int arg_port) {
   reset_difftest();
 }
 
+void ref_display();
+void reg_display();
 static void checkregs(CPU_state *ref, uint32_t pc) {
   if (!difftest_checkregs(ref, pc)) {
     npc_state.state = NPC_ABORT;
     npc_state.halt_pc = pc;
     reg_display();
   }
+  //ref_display();
+  //reg_display();
 }
 
-int difftest_step(uint32_t pc) {
-  CPU_state ref_r;
-  int ret = ref_difftest_exec();
-  ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
+CPU_state ref_r;
 
+void difftest_step(uint32_t pc) {
+  //printf("exec ref pc %08x\n", ref_r.pc);
+  ref_difftest_exec();
+  ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
   checkregs(&ref_r, pc);
-  return ret;
 }

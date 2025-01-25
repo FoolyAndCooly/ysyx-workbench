@@ -47,7 +47,8 @@ module ysyx_23060221_Ifu(
   input [1:0]   rresp    ,
   input         rlast    ,
   input [3:0]   rid      ,
-  input         stall    
+  input         stall    ,
+  input         delay
   );
 
 /*************control**************/
@@ -76,8 +77,7 @@ reg        reg_rready ;
 /*************wire***************/
 wire rstart;
 /*************assign**************/
-
-assign rstart =  start;
+assign rstart =  (~delay & start) | delay_start;
 assign arvalid = reg_arvalid;
 assign araddr  = reg_araddr ;
 assign arid    = 'd0        ;
@@ -89,11 +89,16 @@ assign rready  = reg_rready ;
 
 /*************process**************/
 
-reg start;
+reg start, delay_start;
 always @(posedge clk) begin
   if (rst) start <= rst;
   else if (syn_IFU_IDU) start <= 1;
   else if (start) start <= 0;
+end
+
+always @(posedge clk) begin
+  if (rst) delay_start <= 0;
+  else delay_start <= delay;
 end
 
 always @(posedge clk) begin
