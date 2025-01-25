@@ -20,19 +20,21 @@ module ysyx_23060221_Wbu (
 );
 
 `ifndef SYNTHESIS
+wire syn_LSU_WBU = WBU_ready & LSU_valid;
 always @(posedge clk) begin
   if (~rst) next({31'b0, wen});  
 end
-`endif
 
-wire syn_LSU_WBU = WBU_ready & LSU_valid;
 reg wen;
 always @(posedge clk) begin
   if (rst) wen <= 0;
   else wen <= syn_LSU_WBU;
 end
+`endif
+
+
 assign WBU_ready = 1;
 assign wd = (memtoreg) ? dataout : res;
-assign regwen = wen & regw;
+assign regwen = regw;
 endmodule
 

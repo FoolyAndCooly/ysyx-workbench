@@ -353,26 +353,12 @@ module ysyx_23060221_Idu(
   reg IDU_ready_reg, IDU_valid_reg;
   wire syn_IFU_IDU = (IFU_valid & IDU_ready);
   wire syn_IDU_EXU = (IDU_valid & EXU_ready);
-  assign IDU_ready = syn_IDU_EXU | IDU_ready_reg;
-  always @(posedge clk) begin
-    if (rst) IDU_ready_reg <= 1;
-    else if (syn_IDU_EXU) IDU_ready_reg <= 1;
-    else if (syn_IFU_IDU) IDU_ready_reg <= 0;
-  end
-
-  always @(posedge clk) begin
-    if (rst) IDU_valid_reg <= 0;
-    else if (syn_IFU_IDU) IDU_valid_reg <= 1;
-    else if (syn_IDU_EXU) IDU_valid_reg <= 0;
-  end
-
+  assign IDU_ready = (~IDU_valid | EXU_ready);
   assign IDU_valid = IDU_valid_reg & ~stall;
-
   always @(posedge clk) begin
     if (rst) IDU_valid_reg <= 0;
     else if (syn_IFU_IDU) IDU_valid_reg <= 1;
     else if (syn_IDU_EXU) IDU_valid_reg <= 0;
-    else IDU_valid_reg <= IDU_valid_reg;
   end
 
   ContrGen cg (

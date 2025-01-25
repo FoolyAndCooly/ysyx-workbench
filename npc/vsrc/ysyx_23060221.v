@@ -425,9 +425,11 @@ ysyx_23060221_Idu idu(
   );
 
 wire ca1;
-wire ca2;
 wire cb1;
+wire ca2;
 wire cb2;
+wire ca3;
+wire cb3;
 wire [4:0] ex_ra;
 wire [4:0] ex_rb;
 wire [2:0] ex_extop;
@@ -436,13 +438,20 @@ bypass bp (
   .idexRs1 (ex_ra),
   .idexRs2 (ex_rb),
   .exlsRd  (ls_waddr),
+  .idexRd  (ex_waddr),
   .exlswreg(ls_regw),
   .lswbwreg(wb_regw),
   .lswbRd  (wb_waddr),
+  .ifidRs1 (Ra),
+  .ifidRs2 (Rb),
+  .ifidRs1able((extop == 3'b011) | (extop == 3'b010) | (extop == 3'b000)),
+  .ifidRs2able((extop == 3'b011) | (extop == 3'b010)),
   .ca1(ca1),
   .ca2(ca2),
   .cb1(cb1),
   .cb2(cb2),
+  .ca3(ca3),
+  .cb3(cb3),
   .idexRs1able((ex_extop == 3'b011) | (ex_extop == 3'b010) | (ex_extop == 3'b000)),
   .idexRs2able((ex_extop == 3'b011) | (ex_extop == 3'b010)),
   .loadused(ls_memtoreg)
@@ -473,8 +482,8 @@ wire ex_memtoreg;
 wire ex_regw;
 wire [4:0] ex_waddr;
 
-wire [31:0] idu_src1 = (loaduse_rseq1 & loaduse) ?((LSU_valid & WBU_ready) ? ls_dataout : wb_dataout) : id_src1;
-wire [31:0] idu_src2 = (loaduse_rseq2 & loaduse) ?((LSU_valid & WBU_ready) ? ls_dataout : wb_dataout) : id_src2;
+wire [31:0] idu_src1 = (ca3) ? wb_dataout : ((loaduse_rseq1 & loaduse) ?((LSU_valid & WBU_ready) ? ls_dataout : wb_dataout) : id_src1);
+wire [31:0] idu_src2 = (cb3) ? wb_dataout : ((loaduse_rseq2 & loaduse) ?((LSU_valid & WBU_ready) ? ls_dataout : wb_dataout) : id_src2);
 
 // aluctr: 4, aluasrc: 1, alubsrc: 2, imm: 32, pc: 32, memop: 3, memwr: 1, src1: 32, src2: 32, mem2reg: 1, regw: 1, waddr: 5
 Reg #(159, {84'b0, 3'b111, 72'b0}) idex(
@@ -518,6 +527,7 @@ wire ls_regw;
 wire [4:0] ls_waddr;
 wire lswbwen;
 // memop: 3, memwr: 1, src2: 32, res: 32, mem2reg: 1, regw: 1, waddr: 5
+`ifdef SYNTHESIS
 Reg #(75, {3'b111, 72'b0}) exls(
   .clk(clock),
   .rst(reset),
@@ -525,6 +535,16 @@ Reg #(75, {3'b111, 72'b0}) exls(
   .dout({ls_memop, ls_memwr, ls_src2, ls_res, ls_memtoreg, ls_regw, ls_waddr}),
   .wen(EXU_valid & LSU_ready)
 );
+`else
+wire [31:0] ls_pc;
+Reg #(107, {3'b111, 104'b0}) exls(
+  .clk(clock),
+  .rst(reset),
+  .din ({ex_memop, ex_memwr, ex_src2, ex_res, ex_memtoreg, ex_regw, ex_waddr, ex_pc}),
+  .dout({ls_memop, ls_memwr, ls_src2, ls_res, ls_memtoreg, ls_regw, ls_waddr, ls_pc}),
+  .wen(EXU_valid & LSU_ready)
+);
+`endif
 
 ysyx_23060221_Lsu lsu(
   .clk(clock),
@@ -577,6 +597,7 @@ wire wb_regw;
 wire [4:0] wb_waddr;
 
 // res: 32, dataout: 32, mem2reg: 1, regw: 1, waddr: 5
+`ifdef SYNTHESIS
 Reg #(71, 0) lswb(
   .clk(clock),
   .rst(reset),
@@ -584,6 +605,16 @@ Reg #(71, 0) lswb(
   .dout({wb_res, wb_dataout, wb_memtoreg, wb_regw, wb_waddr}),
   .wen(LSU_valid & WBU_ready)
 );
+`else
+wire [31:0] wb_pc;
+Reg #(103, 0) lswb(
+  .clk(clock),
+  .rst(reset),
+  .din ({ls_res, ls_dataout, ls_memtoreg, ls_regw, ls_waddr, ls_pc}),
+  .dout({wb_res, wb_dataout, wb_memtoreg, wb_regw, wb_waddr, wb_pc}),
+  .wen(LSU_valid & WBU_ready)
+);
+`endif
 
 ysyx_23060221_Wbu wbu(
   .clk      (clock       ),

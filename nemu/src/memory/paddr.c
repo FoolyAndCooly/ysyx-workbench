@@ -18,7 +18,7 @@
 #include <device/mmio.h>
 #include <isa.h>
 
-#ifndef SOC
+#ifndef CONFIG_SOC
 #if   defined(CONFIG_PMEM_MALLOC)
 static uint8_t *pmem = NULL;
 #else // CONFIG_PMEM_GARRAY
@@ -62,7 +62,12 @@ void init_mem() {
   pmem = malloc(CONFIG_MSIZE);
   assert(pmem);
 #endif
+#ifndef CONFIG_SOC
   IFDEF(CONFIG_MEM_RANDOM, memset(pmem, rand(), CONFIG_MSIZE));
+#else
+  IFDEF(CONFIG_MEM_RANDOM, memset(flash, rand(), FLASH_SIZE));
+  IFDEF(CONFIG_MEM_RANDOM, memset(sdram, rand(), SDRAM_SIZE));
+#endif
   Log("physical memory area [" FMT_PADDR ", " FMT_PADDR "]", PMEM_LEFT, PMEM_RIGHT);
 }
 

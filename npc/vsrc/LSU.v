@@ -50,8 +50,15 @@ module ysyx_23060221_Lsu(
 reg LSU_ready_reg, LSU_valid_reg;
 wire syn_EXU_LSU = (EXU_valid & LSU_ready);
 wire syn_LSU_WBU = (LSU_valid & WBU_ready);
-assign LSU_ready = syn_LSU_WBU | LSU_ready_reg;
+assign LSU_ready = (memop == 3'b111) ? (syn_LSU_WBU | LSU_ready_reg) : (memfinish | memfinish_reg);
 assign LSU_valid = (memop == 3'b111) ? LSU_valid_reg : memfinish;
+
+reg memfinish_reg;
+always @(posedge clk) begin
+  if (rst) memfinish_reg <= 0;
+  else if (syn_EXU_LSU) memfinish_reg <= 0;
+  else if (memfinish) memfinish_reg <= 1;
+end
 
 always @(posedge clk) begin
   if (rst) LSU_ready_reg <= 1;

@@ -54,14 +54,8 @@ module ysyx_23060221_Exu(
   reg EXU_ready_reg, EXU_valid_reg;
   wire syn_IDU_EXU = (IDU_valid & EXU_ready);
   wire syn_EXU_LSU = (EXU_valid & LSU_ready);
-  assign EXU_ready = syn_EXU_LSU | EXU_ready_reg;
+  assign EXU_ready = (~EXU_valid | LSU_ready);
   assign EXU_valid = EXU_valid_reg;
-  always @(posedge clk) begin
-    if (rst) EXU_ready_reg <= 1;
-    else if (syn_EXU_LSU) EXU_ready_reg <= 1;
-    else if (syn_IDU_EXU) EXU_ready_reg <= 0;
-  end
-
   always @(posedge clk) begin
     if (rst) EXU_valid_reg <= 0;
     else if (syn_IDU_EXU) EXU_valid_reg <= 1;
