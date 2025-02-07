@@ -77,7 +77,7 @@ reg        reg_rready ;
 /*************wire***************/
 wire rstart;
 /*************assign**************/
-assign rstart =  (~delay & start) | delay_start;
+assign rstart =  (~stall & ~delay & start);
 assign arvalid = reg_arvalid;
 assign araddr  = reg_araddr ;
 assign arid    = 'd0        ;
@@ -89,16 +89,11 @@ assign rready  = reg_rready ;
 
 /*************process**************/
 
-reg start, delay_start;
+reg start;
 always @(posedge clk) begin
   if (rst) start <= rst;
   else if (syn_IFU_IDU) start <= 1;
-  else if (start) start <= 0;
-end
-
-always @(posedge clk) begin
-  if (rst) delay_start <= 0;
-  else delay_start <= delay;
+  else if (rstart) start <= 0;
 end
 
 always @(posedge clk) begin

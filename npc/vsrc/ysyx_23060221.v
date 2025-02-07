@@ -163,7 +163,7 @@ ysyx_23060221_Ifu ifu(
   .rlast    (ifu_rlast  ),
   .rid      (ifu_rid    ),
   .stall    (stall      ),
-  .delay    (PCAsrc & ifid_pulse)
+  .delay    (PCAsrc & ifid_pulse) 
   );
 
 wire         icache_arready;
@@ -214,9 +214,9 @@ cache icache(
 reg IDU_reg;
 always @(posedge clock) begin
   if (reset) IDU_reg <= 0;
-  else IDU_reg <= IDU_valid;
+  else IDU_reg <= (~IDU_valid | IDU_valid & EXU_ready);
 end
-wire ifid_pulse = IDU_valid & ~IDU_reg;
+wire ifid_pulse = IDU_valid & IDU_reg;
 
 wire pc_update;
 wire [31:0] pc_in;
@@ -232,20 +232,20 @@ PC_Gen pcg(
   .pc_out(pc_in)
 );
 
-wire [31:0] if_inst;
 wire [31:0] id_inst, id_pc;
 
 wire [2:0] extop;
-wire loaduse_rseq1 = ex_regw & (ex_waddr==Ra && ((extop == 3'b011) | (extop == 3'b010) | (extop == 3'b000) | (extop == 3'b111)));
-wire loaduse_rseq2 = ex_regw & (ex_waddr==Rb && ((extop == 3'b011) | (extop == 3'b010) | (extop == 3'b111)));
-wire loaduse = (ex_memtoreg & (loaduse_rseq1 | loaduse_rseq2) ) & ~(id_pc == ex_pc);
-wire stall = (memdo_reg & ~(LSU_valid & WBU_ready)) ? loaduse : 0;
+wire loaduse1 = (ex_memtoreg & (ca1 | cb1)) & ~(id_pc == ex_pc); 
+wire loaduse2 = (ls_memtoreg & (ca2 | cb2)) & ~(id_pc == ls_pc | id_pc == ex_pc);
+wire stall1 = (memdo_reg & ~(LSU_valid & WBU_ready & (ls_pc == ex_pc))) ? loaduse1 : 0;
+wire stall2 = (memdo_reg & ~(LSU_valid & WBU_ready & (ls_pc == ex_pc))) ? loaduse2 : 0; // ls_pc == ex_pc ?
+wire stall = stall1 | stall2;
 
 reg memdo_reg;
 always @(posedge clock) begin
   if (reset) memdo_reg <= 0;
   else if (IDU_valid & EXU_ready) memdo_reg <= 1;
-  else if (LSU_valid & WBU_ready) memdo_reg <= 0;
+  else if (LSU_valid & WBU_ready & (ls_pc == ex_pc)) memdo_reg <= 0;
 end
 
 Reg #(64, 64'h0000001300000000) ifid(
@@ -434,27 +434,23 @@ wire [4:0] ex_ra;
 wire [4:0] ex_rb;
 wire [2:0] ex_extop;
 
-bypass bp (
-  .idexRs1 (ex_ra),
-  .idexRs2 (ex_rb),
-  .exlsRd  (ls_waddr),
-  .idexRd  (ex_waddr),
+bypass bp(
+  .Ra(Ra),
+  .Rb(Rb),
+  .idexRd(ex_waddr),
+  .exlsRd(ls_waddr),
+  .lswbRd(wb_waddr),
+  .idexwreg(ex_regw),
   .exlswreg(ls_regw),
   .lswbwreg(wb_regw),
-  .lswbRd  (wb_waddr),
-  .ifidRs1 (Ra),
-  .ifidRs2 (Rb),
-  .ifidRs1able((extop == 3'b011) | (extop == 3'b010) | (extop == 3'b000)),
-  .ifidRs2able((extop == 3'b011) | (extop == 3'b010)),
   .ca1(ca1),
   .ca2(ca2),
+  .ca3(ca3),
   .cb1(cb1),
   .cb2(cb2),
-  .ca3(ca3),
   .cb3(cb3),
-  .idexRs1able((ex_extop == 3'b011) | (ex_extop == 3'b010) | (ex_extop == 3'b000)),
-  .idexRs2able((ex_extop == 3'b011) | (ex_extop == 3'b010)),
-  .loadused(ls_memtoreg)
+  .Raable((extop == 3'b011) | (extop == 3'b010) | (extop == 3'b000) | (extop == 3'b111)),
+  .Rbable((extop == 3'b011) | (extop == 3'b010) | (extop == 3'b111))
 );
 
 wire [3:0]  id_aluctr;
@@ -482,9 +478,17 @@ wire ex_memtoreg;
 wire ex_regw;
 wire [4:0] ex_waddr;
 
-wire [31:0] idu_src1 = (ca3) ? wb_dataout : ((loaduse_rseq1 & loaduse) ?((LSU_valid & WBU_ready) ? ls_dataout : wb_dataout) : id_src1);
-wire [31:0] idu_src2 = (cb3) ? wb_dataout : ((loaduse_rseq2 & loaduse) ?((LSU_valid & WBU_ready) ? ls_dataout : wb_dataout) : id_src2);
+wire [31:0] ls_dataout_by = (LSU_valid & WBU_ready) ? ls_dataout : wb_dataout; // ls_dataout是脉冲无法保持
 
+wire [31:0] idu_src1 = (ca1) ? (ex_memtoreg ? ls_dataout_by : ex_res) : 
+		       (ca2) ? (ls_memtoreg ? ls_dataout_by : ls_res) :
+		       (ca3) ? wd :
+		       id_src1;
+
+wire [31:0] idu_src2 = (cb1) ? (ex_memtoreg ? ls_dataout_by : ex_res) : 
+		       (cb2) ? (ls_memtoreg ? ls_dataout_by : ls_res) :
+		       (cb3) ? wd :
+		       id_src2;
 // aluctr: 4, aluasrc: 1, alubsrc: 2, imm: 32, pc: 32, memop: 3, memwr: 1, src1: 32, src2: 32, mem2reg: 1, regw: 1, waddr: 5
 Reg #(159, {84'b0, 3'b111, 72'b0}) idex(
   .clk(clock),
@@ -504,12 +508,6 @@ ysyx_23060221_Exu exu(
   .aluctr(ex_aluctr),
   .aluasrc(ex_aluasrc),
   .alubsrc(ex_alubsrc),
-  .ca1(ca1),
-  .ca2(ca2),
-  .cb1(cb1),
-  .cb2(cb2),
-  .exlssrc(ls_res),
-  .lswbsrc(wd),
   .res(ex_res),
   .IDU_valid(IDU_valid),
   .EXU_ready(EXU_ready),
@@ -527,11 +525,12 @@ wire ls_regw;
 wire [4:0] ls_waddr;
 wire lswbwen;
 // memop: 3, memwr: 1, src2: 32, res: 32, mem2reg: 1, regw: 1, waddr: 5
+wire [31:0] exu_src2 = cb1 ? ls_res : ex_src2;
 `ifdef SYNTHESIS
 Reg #(75, {3'b111, 72'b0}) exls(
   .clk(clock),
   .rst(reset),
-  .din ({ex_memop, ex_memwr, ex_src2, ex_res, ex_memtoreg, ex_regw, ex_waddr}),
+  .din ({ex_memop, ex_memwr, exu_src2, ex_res, ex_memtoreg, ex_regw, ex_waddr}),
   .dout({ls_memop, ls_memwr, ls_src2, ls_res, ls_memtoreg, ls_regw, ls_waddr}),
   .wen(EXU_valid & LSU_ready)
 );
@@ -540,7 +539,7 @@ wire [31:0] ls_pc;
 Reg #(107, {3'b111, 104'b0}) exls(
   .clk(clock),
   .rst(reset),
-  .din ({ex_memop, ex_memwr, ex_src2, ex_res, ex_memtoreg, ex_regw, ex_waddr, ex_pc}),
+  .din ({ex_memop, ex_memwr, exu_src2, ex_res, ex_memtoreg, ex_regw, ex_waddr, ex_pc}),
   .dout({ls_memop, ls_memwr, ls_src2, ls_res, ls_memtoreg, ls_regw, ls_waddr, ls_pc}),
   .wen(EXU_valid & LSU_ready)
 );

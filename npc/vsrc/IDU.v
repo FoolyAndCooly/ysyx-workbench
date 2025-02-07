@@ -58,6 +58,32 @@ module PCCtr(
   end
 endmodule
 
+module bypass(
+  input [4:0] Ra,
+  input [4:0] Rb,
+  input [4:0] idexRd,
+  input [4:0] exlsRd,
+  input [4:0] lswbRd,
+  input idexwreg,
+  input exlswreg,
+  input lswbwreg,
+  output ca1,
+  output ca2,
+  output cb1,
+  output cb2,
+  output ca3,
+  output cb3,
+  input Raable,
+  input Rbable
+);
+  assign ca1 = idexwreg & (idexRd != 0) & ((idexRd == Ra) & Raable);
+  assign cb1 = idexwreg & (idexRd != 0) & ((idexRd == Rb) & Rbable);
+  assign ca2 = exlswreg & (exlsRd != 0) & (((exlsRd == Ra) & (idexRd != Ra)) & Raable);
+  assign cb2 = exlswreg & (exlsRd != 0) & (((exlsRd == Rb) & (idexRd != Rb)) & Rbable);
+  assign ca3 = lswbwreg & (lswbRd != 0) & (((lswbRd == Ra) & (idexRd != Ra) & (exlsRd != Ra)) & Raable);
+  assign cb3 = lswbwreg & (lswbRd != 0) & (((lswbRd == Rb) & (idexRd != Rb) & (exlsRd != Rb)) & Rbable);
+endmodule
+
 module Csr(
   input clk,
   input rst,

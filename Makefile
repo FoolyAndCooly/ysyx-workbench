@@ -1,5 +1,16 @@
 STUID = ysyx_22040000
 STUNAME = Yicheng Liu
+IMAGE_NAME=ysyx-docker
+TAG=latest
+
+build:
+	docker build -t $(IMAGE_NAME):$(TAG) . > docker-build.log 2>&1
+
+rebuild:
+	docker build --no-cache -t $(IMAGE_NAME):$(TAG) . > docker-build.log 2>&1
+
+run:
+	docker run -it $(IMAGE_NAME):$(TAG)
 
 # DO NOT modify the following code!!!
 
